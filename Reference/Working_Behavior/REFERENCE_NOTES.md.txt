@@ -1,0 +1,15 @@
+REFERENCE NOTES
+
+2. It asks for amount first.
+3. Then category.
+4. Then payment mode.
+5. Then remark.
+6. After remark, user confirms/submits.
+7. Only after successful API response does it show "Expense Saved Successfully".
+8. Categories can be customized.
+9. Payment modes can be customized.
+10. Device name can be changed.
+11. Android should ultimately NOT require MacroDroid.
+12. New Android app should not continuously run in background.
+13. Preferred trigger is home-screen widget and/or Quick Settings tile.
+14. Existing Google Sheet/backend should remain compatible.

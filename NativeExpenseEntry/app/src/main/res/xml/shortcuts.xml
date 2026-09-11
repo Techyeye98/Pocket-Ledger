@@ -1,0 +1,5 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="add_expense" android:enabled="true" android:icon="@drawable/ic_quick_add" android:shortcutShortLabel="@string/shortcut_add_expense" android:shortcutLongLabel="@string/shortcut_add_expense_long">
+        <intent android:action="com.example.nativeexpenseentry.ADD_EXPENSE" android:targetPackage="com.example.nativeexpenseentry" android:targetClass="com.example.nativeexpenseentry.QuickEntryActivity" />
+    </shortcut>
+</shortcuts>

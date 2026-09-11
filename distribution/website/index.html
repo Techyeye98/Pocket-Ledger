@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Pocket Ledger — simple expense entry connected to your own Google Sheet.">
+  <meta name="theme-color" content="#123d4a">
+  <title>Pocket Ledger — Your own sheet, made simple</title>
+  <link rel="icon" href="assets/pocket-ledger-logo.png">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="Pocket Ledger home"><img src="assets/pocket-ledger-logo.png" alt="Pocket Ledger logo"><span>Pocket Ledger</span></a>
+    <nav aria-label="Primary navigation"><a href="#home">Home</a><a href="#get-started">Get started</a><a href="#guides">Guides</a></nav>
+  </header>
+
+  <main id="home">
+    <section class="hero">
+      <p class="eyebrow">PRIVATE EXPENSE ENTRY</p>
+      <h1>Everyday expense entry, connected to <em>your</em> own sheet.</h1>
+      <p class="lede">Pocket Ledger helps you capture an expense quickly on Android or iPhone, then save it to a Google Sheet you control.</p>
+      <div class="actions">
+        <a class="button primary" href="#get-started">Get started <span aria-hidden="true">→</span></a>
+        <a class="button secondary" href="https://docs.google.com/spreadsheets/d/16j8RzujL-Z_zTnZ8ST50UopyROpsU-yM21yhWZf2IxY/copy" target="_blank" rel="noopener">Make your copy</a>
+      </div>
+      <p class="quiet-note">Your template copy lives in your Google Drive. Your expense data is sent to your own Apps Script endpoint.</p>
+    </section>
+
+    <section class="platforms" id="get-started" aria-labelledby="platform-title">
+      <div class="section-intro"><p class="eyebrow">CHOOSE YOUR WAY IN</p><h2 id="platform-title">One simple system. Your preferred device.</h2></div>
+      <div class="grid">
+        <article class="platform-card"><span class="platform-icon" aria-hidden="true">◈</span><p class="card-label">ANDROID</p><h3>Native Android app</h3><p>Download the Pocket Ledger APK for quick entry, a home-screen widget, launcher shortcut, and Quick Settings tile.</p><a class="card-link" href="../downloads/Pocket-Ledger-Android.apk" download>Download Android app <span aria-hidden="true">↓</span></a></article>
+        <article class="platform-card"><span class="platform-icon" aria-hidden="true">⌁</span><p class="card-label">IPHONE</p><h3>Apple Shortcuts</h3><p>No separate iOS app is needed. Install the supplied Shortcut and configure it with your own Apps Script Web App URL.</p><a class="card-link" href="../downloads/Pocket-Ledger-iPhone.shortcut" download>Get iPhone Shortcut <span aria-hidden="true">↓</span></a></article>
+        <article class="platform-card sheet"><span class="platform-icon" aria-hidden="true">▦</span><p class="card-label">GOOGLE SHEETS</p><h3>Your personal database</h3><p>Make a private copy of the master template in your own Google Drive, then connect it to Pocket Ledger.</p><a class="card-link" href="https://docs.google.com/spreadsheets/d/16j8RzujL-Z_zTnZ8ST50UopyROpsU-yM21yhWZf2IxY/copy" target="_blank" rel="noopener">Make your copy <span aria-hidden="true">↗</span></a></article>
+      </div>
+    </section>
+
+    <section class="flow" aria-labelledby="flow-title">
+      <div class="section-intro"><p class="eyebrow">SETUP, WITHOUT THE GUESSWORK</p><h2 id="flow-title">Five steps to your own Pocket Ledger.</h2></div>
+      <ol>
+        <li><span>01</span><div><h3>Choose your platform</h3><p>Download the Android app or get the original iPhone Shortcut.</p></div></li>
+        <li><span>02</span><div><h3>Make your Sheet copy</h3><p>Use the copy link to place the template in your own Google Drive.</p></div></li>
+        <li><span>03</span><div><h3>Deploy Apps Script</h3><p>Add the included script to your copied Sheet and deploy your personal Web App endpoint.</p></div></li>
+        <li><span>04</span><div><h3>Connect Pocket Ledger</h3><p>Paste your own Web App URL into the Android app or configure the iPhone Shortcut.</p></div></li>
+        <li><span>05</span><div><h3>Test, then start logging</h3><p>Confirm the connection before adding your daily expenses.</p></div></li>
+      </ol>
+    </section>
+
+    <section class="guides" id="guides" aria-labelledby="guides-title">
+      <div class="guide-copy"><p class="eyebrow">KEEP THE GUIDES HANDY</p><h2 id="guides-title">Everything for a clean setup.</h2><p>Use the setup guide for your copied Sheet and deployment flow. The Apps Script file is included unchanged for your personal deployment.</p></div>
+      <div class="guide-actions">
+        <a class="button secondary" href="../guides/Pocket-Ledger-Complete-User-Guide.pdf" target="_blank">Open complete user guide</a>
+        <a class="button secondary" href="../apps-script/Pocket-Ledger-Apps-Script.gs.txt" target="_blank">Open Apps Script</a>
+      </div>
+    </section>
+  </main>
+
+  <footer><a class="brand" href="#home"><img src="assets/pocket-ledger-logo.png" alt=""><span>Pocket Ledger</span></a><p>Simple expense entry, powered by the Google Sheet you own.</p></footer>
+</body>
+</html>

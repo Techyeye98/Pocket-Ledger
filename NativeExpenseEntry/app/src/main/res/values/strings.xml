@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">Pocket Ledger</string>
+    <string name="widget_name">Add Expense</string>
+    <string name="tile_name">Add Expense</string>
+    <string name="shortcut_add_expense">Add Expense</string>
+    <string name="shortcut_add_expense_long">Quickly add an expense</string>
+</resources>

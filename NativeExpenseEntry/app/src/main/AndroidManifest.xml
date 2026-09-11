@@ -1,0 +1,26 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <application android:allowBackup="true" android:icon="@mipmap/app_logo" android:roundIcon="@mipmap/app_logo" android:label="@string/app_name" android:theme="@style/Theme.PocketLedger" android:usesCleartextTraffic="false">
+        <activity android:name=".MainActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+        </activity>
+        <activity android:name=".QuickEntryActivity" android:exported="true" android:theme="@style/Theme.PocketLedger.QuickEntry" android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="com.example.nativeexpenseentry.ADD_EXPENSE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+        <receiver android:name=".AddExpenseWidgetProvider" android:exported="true" android:label="@string/widget_name">
+            <intent-filter><action android:name="android.appwidget.action.APPWIDGET_UPDATE" /></intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/add_expense_widget" />
+        </receiver>
+        <service android:name=".AddExpenseTileService" android:exported="true" android:icon="@drawable/ic_quick_add" android:label="@string/tile_name" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+        </service>
+    </application>
+</manifest>
