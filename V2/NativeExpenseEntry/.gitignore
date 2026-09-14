@@ -20,7 +20,3 @@ Thumbs.db
 secrets.properties
 env.properties
 tmp/
-
-# Release artifacts (APKs/AABs are distributed separately)
-*.apk
-*.aab

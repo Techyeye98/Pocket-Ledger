@@ -1,0 +1,13 @@
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="add_expense"
+        android:enabled="true"
+        android:icon="@drawable/ic_quick_add"
+        android:shortcutShortLabel="@string/shortcut_add_expense"
+        android:shortcutLongLabel="@string/shortcut_add_expense_long">
+        <intent
+            android:action="com.pocketledger.v2.ADD_EXPENSE"
+            android:targetPackage="com.pocketledger.v2"
+            android:targetClass="com.pocketledger.v2.QuickEntryActivity" />
+    </shortcut>
+</shortcuts>
