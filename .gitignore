@@ -24,3 +24,9 @@ tmp/
 # Release artifacts (APKs/AABs are distributed separately)
 *.apk
 *.aab
+
+# ...except the published V2 APK, which the website serves directly
+!distribution/downloads/Pocket-Ledger-Android-V2.apk
+
+# Local-only smoke-test screenshots
+/tools/site-smoke/out/
