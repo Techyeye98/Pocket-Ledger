@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#050d0b">
+  <meta name="description" content="Pocket Ledger helps you record everyday expenses on Android or iPhone and keep a copy in your own Google Sheet when you choose.">
+  <title>Pocket Ledger — See the shape of your day</title>
+  <script>try{document.documentElement.dataset.theme=localStorage.getItem('pl-theme')==='light'?'light':'dark'}catch{}</script>
+  <link rel="icon" type="image/png" href="pocket-ledger-logo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="main.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="wordmark" href="#top" aria-label="Pocket Ledger home"><img class="wordmark-logo" src="pocket-ledger-logo.png" width="38" height="38" alt=""><span class="wordmark-name">Pocket Ledger</span></a>
+    <nav class="desktop-nav" aria-label="Primary navigation">
+      <a href="#features">The day</a>
+      <a href="#architecture">Your control</a>
+      <a href="#get-started">Get started</a>
+      <a href="#manual">Guide</a>
+    </nav>
+    <div class="header-actions">
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light theme" title="Switch theme"><span class="theme-icon" aria-hidden="true"></span></button>
+      <a class="header-cta" href="#get-started">Get Pocket Ledger <span aria-hidden="true">↗</span></a>
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="mobile-nav"><span></span><span></span></button>
+    </div>
+    <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile navigation" hidden>
+      <a href="#features">The day</a><a href="#architecture">Your control</a><a href="#get-started">Get started</a><a href="#manual">Guide</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-backdrop" aria-hidden="true">
+        <div class="hero-glow"></div>
+        <svg class="hero-traces" viewBox="0 0 1440 880" preserveAspectRatio="xMidYMid slice">
+          <defs><linearGradient id="trace-gradient"><stop stop-color="#53e09c" stop-opacity="0"/><stop offset=".28" stop-color="#53e09c" stop-opacity=".9"/><stop offset=".73" stop-color="#2fd6c8" stop-opacity=".72"/><stop offset="1" stop-color="#53e09c" stop-opacity="0"/></linearGradient></defs>
+          <path class="trace trace-ghost" d="M-80 580 C180 450 300 700 555 560 S920 350 1120 520 S1370 660 1510 510"/>
+          <path class="trace trace-ghost trace-ghost-two" d="M-60 675 C190 725 340 545 530 660 S850 705 1030 590 S1320 410 1510 485"/>
+          <path class="trace trace-main" id="trace-route" d="M-80 580 C180 450 300 700 555 560 S920 350 1120 520 S1370 660 1510 510"/>
+          <g class="trace-traveler traveler-one">
+            <circle class="trace-halo" r="28"/><circle class="trace-point" r="8"/>
+            <animateMotion dur="13s" repeatCount="indefinite" begin="-1s" calcMode="linear"><mpath href="#trace-route"/></animateMotion>
+          </g>
+          <g class="trace-traveler traveler-two">
+            <circle class="trace-halo" r="28"/><circle class="trace-point" r="8"/>
+            <animateMotion dur="13s" repeatCount="indefinite" begin="-5.33s" calcMode="linear"><mpath href="#trace-route"/></animateMotion>
+          </g>
+          <g class="trace-traveler traveler-three">
+            <circle class="trace-halo" r="28"/><circle class="trace-point" r="8"/>
+            <animateMotion dur="13s" repeatCount="indefinite" begin="-9.66s" calcMode="linear"><mpath href="#trace-route"/></animateMotion>
+          </g>
+          <g class="trace-static">
+            <circle class="trace-halo" cx="224" cy="565" r="28"/><circle class="trace-point" cx="224" cy="565" r="8"/>
+            <circle class="trace-halo" cx="643" cy="501" r="28"/><circle class="trace-point" cx="643" cy="501" r="8"/>
+            <circle class="trace-halo" cx="1115" cy="517" r="28"/><circle class="trace-point" cx="1115" cy="517" r="8"/>
+          </g>
+        </svg>
+        <div class="hero-beats"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <span class="hero-coordinate coordinate-one">₹411.75 <small>petrol</small></span>
+        <span class="hero-coordinate coordinate-two">₹89.00 <small>groceries</small></span>
+        <span class="hero-coordinate coordinate-three">₹99.00 <small>education</small></span>
+      </div>
+      <div class="hero-content">
+        <p class="hero-intro">Pocket Ledger <span class="hero-intro-line"></span> personal expense tracking</p>
+        <h1 id="hero-title"><span>WHERE DID</span><span>TODAY GO<span class="question">?</span></span></h1>
+        <div class="hero-bottom-row">
+          <p>Catch the little spends. See what they become. Keep the record on your phone—and send a copy to your own Sheet only when you choose.</p>
+          <div class="hero-actions"><a class="action action-primary" href="#get-started">Get Pocket Ledger <span aria-hidden="true">↗</span></a><a class="text-link" href="#features">Explore a sample day <span aria-hidden="true">↓</span></a></div>
+        </div>
+      </div>
+      <div class="hero-base"><span>Made for the moments between everything else.</span><span>Scroll to follow a day <b aria-hidden="true">↓</b></span></div>
+    </section>
+
+    <section class="statement" aria-label="The idea">
+      <p>There is a story in the small stuff.</p>
+      <div class="statement-line"><span>One stop.</span><span>One shop.</span><span>One clearer day.</span></div>
+    </section>
+
+    <section class="day-section" id="features" aria-labelledby="day-title">
+      <div class="day-heading reveal"><span class="chapter-index">A / The day</span><h2 id="day-title">SEE THE DAY<br>TAKE SHAPE.</h2><p>Pocket Ledger records expenses as they happen. This illustration uses sample entries to show how a handful of moments becomes a view you can actually read.</p></div>
+      <div class="day-experience">
+        <div class="day-visual" id="day-visual" aria-label="Interactive sample spending visualization">
+          <div class="visual-head"><span>Sample day / illustrative data</span><span class="visual-total">₹1,013.75 <small>five entries</small></span></div>
+          <div class="visual-field" id="visual-field">
+            <div class="field-rules" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+            <div class="bars" id="bars" role="group" aria-label="Sample expenses; focus or tap a bar for details"></div>
+            <div class="field-labels" id="field-labels" aria-hidden="true"><span>01</span><span>02</span><span>03</span><span>04</span><span>05</span></div>
+          </div>
+          <div class="visual-footer"><span id="visual-caption">Five separate moments, kept in order.</span><div class="view-switch" role="group" aria-label="Sample data view"><button class="view-button" type="button" data-view="moments" aria-pressed="true">Moments</button><button class="view-button" type="button" data-view="categories" aria-pressed="false">Categories</button></div></div>
+          <p class="visual-detail" id="visual-detail" role="status" aria-live="polite">Hover, focus, or tap a bar to inspect an expense.</p>
+          <p class="sample-note">Sample data only. This is an illustration, not your ledger.</p>
+        </div>
+        <div class="day-narrative">
+          <article class="story-step" data-story-view="moments"><span>01 / capture</span><h3>Life does not wait for a spreadsheet.</h3><p>Add an expense in the Android app, from its widget, or from Quick Settings. The iPhone Shortcut offers a separate route into your own Sheet.</p></article>
+          <article class="story-step" data-story-view="categories"><span>02 / understand</span><h3>The pattern appears when you look back.</h3><p>On Android, review your ledger by period or category. Search and filters make the small entries useful after the moment has passed.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="control-section" id="architecture" aria-labelledby="control-title">
+      <div class="control-top reveal"><span class="chapter-index">B / Your control</span><h2 id="control-title">YOURS<br>BY DEFAULT.</h2><p>The Android app keeps its primary ledger on your device. It works offline without a Sheet. A Google Sheet can be your second copy, sent when you choose to sync.</p></div>
+      <div class="control-scene" id="control-scene">
+        <div class="control-node local-node"><span class="node-glyph" aria-hidden="true">⌁</span><span class="node-kicker">Primary record</span><strong>On your Android device.</strong><small>Ready even without a connection.</small></div>
+        <div class="control-bridge" aria-hidden="true"><span class="bridge-line"></span><span class="bridge-token">your choice</span></div>
+        <div class="control-node sheet-node"><span class="node-glyph" aria-hidden="true">▦</span><span class="node-kicker">Optional second copy</span><strong>In your Google Sheet.</strong><small>Sync is initiated by you.</small></div>
+      </div>
+      <div class="control-action"><button id="sync-demo" type="button" aria-pressed="false">Show the optional sync <span aria-hidden="true">↗</span></button><p id="sync-caption" role="status">Nothing leaves the Android app in the background.</p></div>
+    </section>
+
+    <section class="start-section" id="get-started" aria-labelledby="start-title">
+      <div class="start-intro reveal"><span class="chapter-index">C / Begin</span><h2 id="start-title">YOUR NEXT<br>MOVE.</h2><p>Start with the Android app, set up the iPhone Shortcut, or prepare a Sheet that belongs to you.</p></div>
+      <div class="routes">
+        <article class="route"><div class="route-number">01</div><div class="route-main"><span>Android · 6.0.8</span><h3>The app in your pocket.</h3><p>Record offline, tag Needs and Wants, and connect your Sheet later. Installs separately from V2; export a JSON backup before migrating.</p></div><a href="https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger.apk" class="route-action" aria-label="Download Pocket Ledger 6.0.8 Android APK">Download APK <span aria-hidden="true">↓</span></a></article>
+        <article class="route"><div class="route-number">02</div><div class="route-main"><span>iPhone</span><h3>Make it a Shortcut.</h3><p>Install the supplied Apple Shortcut and connect it to your own Sheet and Apps Script URL.</p></div><a href="https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger-iPhone.shortcut" class="route-action" aria-label="Get Pocket Ledger iPhone Shortcut">Get Shortcut <span aria-hidden="true">↓</span></a></article>
+        <article class="route"><div class="route-number">03</div><div class="route-main"><span>Your Google Drive</span><h3>Keep a copy that is yours.</h3><p>Copy the template for your device. The Android and iPhone/V1 templates are different.</p></div><div class="route-action-group"><a href="https://docs.google.com/spreadsheets/d/1vu140rEacxVWVeWVil1BvjcWNFS2xyJII1b-rjoisrw/copy" target="_blank" rel="noopener noreferrer">Copy Android Sheet <span aria-hidden="true">↗</span></a><a href="https://docs.google.com/spreadsheets/d/16j8RzujL-Z_zTnZ8ST50UopyROpsU-yM21yhWZf2IxY/copy" target="_blank" rel="noopener noreferrer">Copy iPhone / V1 Sheet <span aria-hidden="true">↗</span></a></div></article>
+      </div>
+    </section>
+
+    <section class="guide-section" id="manual" aria-labelledby="guide-title">
+      <div class="guide-graphic" aria-hidden="true"><span class="guide-line line-a"></span><span class="guide-line line-b"></span><span class="guide-line line-c"></span><span class="guide-line line-d"></span><span class="guide-line line-e"></span></div>
+      <div class="guide-layout">
+        <div class="guide-content reveal"><span class="chapter-index">D / The guide</span><h2 id="guide-title">GO FROM<br>FIRST TAP<br>TO FULL VIEW.</h2><p>Eight quick pages for Android: expenses, Need / Want, widgets, your Sheet, backup and restore.</p><div class="guide-actions"><a class="action action-dark" data-guide-open href="Pocket-Ledger-Quick-Guide-2026-10.pdf">Open the PDF guide <span aria-hidden="true">↗</span></a><a class="text-link" href="https://techyeye98.github.io/Pocket-Ledger/apps-script/Pocket-Ledger-Apps-Script.gs.txt" target="_blank" rel="noopener noreferrer">Apps Script source <span aria-hidden="true">↗</span></a></div></div>
+        <a class="guide-book-link" data-guide-open href="Pocket-Ledger-Quick-Guide-2026-10.pdf" aria-label="Open the Pocket Ledger PDF guide">
+          <span class="guide-book" aria-hidden="true">
+            <span class="guide-book-back"></span>
+            <span class="guide-book-page page-two"><i></i><i></i><i></i><i></i></span>
+            <span class="guide-book-page page-one"><i></i><i></i><i></i><i></i></span>
+            <span class="guide-book-cover"><img class="book-symbol" src="pocket-ledger-logo.png" width="32" height="32" alt=""><span class="book-title">Pocket<br>Ledger</span><span class="book-rule"></span><strong>A guide to<br>making it yours.</strong><small>Android · Google Sheets · Backup</small></span>
+          </span>
+          <span class="guide-book-prompt">Open the guide <span aria-hidden="true">↗</span></span>
+        </a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div class="footer-top"><a class="wordmark" href="#top" aria-label="Pocket Ledger home"><img class="wordmark-logo" src="pocket-ledger-logo.png" width="38" height="38" alt=""><span class="wordmark-name">Pocket Ledger</span></a><p>A small habit. A clearer record.</p></div><div class="footer-bottom"><span>© 2026 Pocket Ledger</span><nav aria-label="Resources"><a href="https://github.com/Techyeye98/Pocket-Ledger" target="_blank" rel="noopener noreferrer">GitHub</a><a href="https://github.com/Techyeye98/Pocket-Ledger/issues" target="_blank" rel="noopener noreferrer">Get help</a><a href="#manual">Guide</a><a href="#top">Back to top ↑</a></nav></div></footer>
+</body>
+</html>

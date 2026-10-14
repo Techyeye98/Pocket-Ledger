@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="6dp"
+    android:background="@drawable/widget_background"
+    android:contentDescription="@string/widget_accessibility">
+
+    <ImageView android:layout_width="34dp" android:layout_height="34dp"
+        android:src="@mipmap/app_logo" android:contentDescription="@null" />
+    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:layout_marginStart="6dp"
+        android:text="@string/widget_add_expense" android:textColor="#F2FCF4"
+        android:textSize="14sp" android:textStyle="bold"
+        android:maxLines="1" android:ellipsize="end" />
+    <TextView android:layout_width="28dp" android:layout_height="28dp"
+        android:gravity="center" android:text="+" android:textColor="#082719"
+        android:textSize="20sp" android:background="@drawable/widget_plus_bg"
+        android:importantForAccessibility="no" />
+</LinearLayout>

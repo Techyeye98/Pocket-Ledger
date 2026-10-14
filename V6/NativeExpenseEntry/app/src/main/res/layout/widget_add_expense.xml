@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:padding="8dp"
+    android:background="@drawable/widget_background"
+    android:contentDescription="@string/widget_accessibility">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <FrameLayout android:layout_width="32dp" android:layout_height="32dp"
+            android:background="@drawable/widget_logo_bg">
+            <ImageView android:layout_width="28dp" android:layout_height="28dp"
+                android:layout_gravity="center" android:src="@mipmap/app_logo"
+                android:contentDescription="@null" />
+        </FrameLayout>
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:layout_marginStart="9dp"
+            android:text="@string/widget_brand" android:textColor="#BCE1C9"
+            android:textSize="12sp" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical"
+        android:layout_marginTop="4dp">
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:text="@string/widget_add_expense"
+            android:textColor="#F2FCF4" android:textSize="18sp"
+            android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:layout_width="32dp" android:layout_height="32dp"
+            android:gravity="center" android:text="+" android:textColor="#082719"
+            android:textSize="25sp" android:background="@drawable/widget_plus_bg"
+            android:importantForAccessibility="no" />
+    </LinearLayout>
+</LinearLayout>

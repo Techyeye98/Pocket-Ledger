@@ -1,0 +1,54 @@
+<resources>
+    <!-- Base app theme: material light, no action bar -->
+    <style name="Theme.PocketLedger" parent="android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#087C4B</item>
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:navigationBarColor">@color/background</item>
+        <item name="android:statusBarColor">@color/background</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="Theme.PocketLedger.Dark" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:colorAccent">#65E2A4</item>
+        <item name="android:windowBackground">#07130E</item>
+        <item name="android:navigationBarColor">#07130E</item>
+        <item name="android:statusBarColor">#07130E</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <!-- Full-screen entry launched from inside the app. -->
+    <style name="Theme.PocketLedger.QuickEntry" parent="Theme.PocketLedger">
+        <item name="android:windowBackground">@color/background</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
+
+    <style name="Theme.PocketLedger.QuickEntry.Dark" parent="Theme.PocketLedger.Dark">
+        <item name="android:windowBackground">#07130E</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
+
+    <!-- Widget-only task: a floating sheet over the home screen. -->
+    <style name="Theme.PocketLedger.WidgetEntry" parent="Theme.PocketLedger">
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.42</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
+
+    <style name="Theme.PocketLedger.WidgetEntry.Dark" parent="Theme.PocketLedger.Dark">
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:backgroundDimAmount">0.50</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowSoftInputMode">adjustResize</item>
+    </style>
+</resources>

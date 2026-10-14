@@ -27,6 +27,12 @@ tmp/
 
 # ...except the published V2 APK, which the website serves directly
 !distribution/downloads/Pocket-Ledger-Android-V2.apk
+!distribution/downloads/Pocket-Ledger.apk
+
+# Local runtimes, phone captures and generated authoring files are not releases.
+node_modules/
+/V6/guide-captures/
+/output/
 
 # Local-only smoke-test screenshots
 /tools/site-smoke/out/

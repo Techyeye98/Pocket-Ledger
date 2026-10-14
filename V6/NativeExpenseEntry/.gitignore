@@ -1,0 +1,22 @@
+# Android / Gradle
+.gradle/
+**/.gradle/
+**/.gradle-user/
+**/build/
+.idea/
+**/.idea/
+*.iml
+local.properties
+**/local.properties
+
+# OS and editor state
+.DS_Store
+Thumbs.db
+*.log
+
+# Do not include local credentials or machine-specific settings
+*.keystore
+*.jks
+secrets.properties
+env.properties
+tmp/

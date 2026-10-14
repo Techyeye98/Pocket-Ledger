@@ -1,0 +1,5 @@
+<resources>
+    <!-- Dark mode overrides -->
+    <color name="background">#07130E</color>
+    <color name="surface">#10231A</color>
+</resources>

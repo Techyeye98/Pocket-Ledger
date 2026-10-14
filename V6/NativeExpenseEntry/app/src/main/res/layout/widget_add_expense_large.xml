@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="18dp"
+    android:background="@drawable/widget_background"
+    android:contentDescription="@string/widget_accessibility">
+
+    <FrameLayout android:layout_width="58dp" android:layout_height="58dp"
+        android:background="@drawable/widget_logo_bg">
+        <ImageView android:layout_width="50dp" android:layout_height="50dp"
+            android:layout_gravity="center" android:src="@mipmap/app_logo"
+            android:contentDescription="@null" />
+    </FrameLayout>
+
+    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+        android:layout_weight="1" android:layout_marginStart="15dp"
+        android:orientation="vertical">
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:text="@string/widget_brand" android:textColor="#BCE1C9"
+            android:textSize="13sp" android:maxLines="1" android:ellipsize="end" />
+        <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="3dp" android:text="@string/widget_add_expense"
+            android:textColor="#F2FCF4" android:textSize="21sp"
+            android:textStyle="bold" android:maxLines="1" android:ellipsize="end" />
+    </LinearLayout>
+
+    <TextView android:layout_width="52dp" android:layout_height="52dp"
+        android:layout_marginStart="10dp" android:gravity="center"
+        android:text="+" android:textColor="#082719" android:textSize="31sp"
+        android:background="@drawable/widget_plus_bg"
+        android:importantForAccessibility="no" />
+</LinearLayout>
