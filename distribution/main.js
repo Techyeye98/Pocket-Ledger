@@ -44,7 +44,6 @@
       else if (document.activeElement === menuButton) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
     }
   });
-  matchMedia('(min-width: 801px)').addEventListener('change', event => { if (event.matches) closeMenu(); });
   const barsHost = document.getElementById('bars');
   if (barsHost) {
     const moments = [

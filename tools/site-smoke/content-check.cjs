@@ -20,7 +20,7 @@ for(const page of pages){
  assert.equal(new Set(ownIds).size,ownIds.length,page+' duplicate IDs');
  for(const [,url] of text.matchAll(/(?:href|src)="([^"]+)"/g)){
   if(/^(?:https?:|data:|mailto:)/.test(url))continue;
-  const [file,fragment]=url.replace(/^\/Pocket-Ledger\//,'').split('#'),target=file||page;
+  const [file,fragment]=url.replace(/^\/Pocket-Ledger\//,'').split('#'),target=file.split('?')[0]||page;
   assert.ok(fs.existsSync(path.resolve(site,target)), 'Missing local resource '+url);
   if(fragment){
    const targetHtml=fs.readFileSync(path.join(site,target),'utf8');
