@@ -5,6 +5,8 @@
 
     <application
         android:allowBackup="true"
+        android:fullBackupContent="@xml/backup_rules"
+        android:dataExtractionRules="@xml/data_extraction_rules"
         android:icon="@mipmap/app_logo"
         android:roundIcon="@mipmap/app_logo"
         android:label="@string/app_name"
@@ -27,6 +29,8 @@
         </activity>
 
         <!-- In-app entry keeps the full-screen V6 flow. -->
+        <activity android:name=".LedgerActivity" android:exported="false" android:theme="@style/Theme.PocketLedger.Ledger" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".BillSplitActivity" android:exported="false" android:theme="@style/Theme.PocketLedger.Ledger" android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".QuickEntryActivity"
             android:exported="true"

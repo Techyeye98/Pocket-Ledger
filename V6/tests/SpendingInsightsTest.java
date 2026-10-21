@@ -20,6 +20,10 @@ public final class SpendingInsightsTest {
         SpendingInsights old = new SpendingInsights();
         old.add(800, null, "Old entry");
         check(old.share(2) == 100 && old.share(0) == 0, "Historical spending is not auto-classified");
+        old.refund(100, SpendingType.UNTAGGED, "Old entry");
+        check(old.total() == 700 && old.counts[2] == 1, "Refund reduces spending without adding a purchase count");
+        old.refund(800, SpendingType.UNTAGGED, "Old entry");
+        check(old.hasNegative() && old.total() == -100, "Refund-only periods retain negative net spending");
         System.out.println("PASS: spending totals, shares, counts, categories, empty and historical ledgers.");
     }
 }

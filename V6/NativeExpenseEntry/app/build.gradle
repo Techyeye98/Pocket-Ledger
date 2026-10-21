@@ -9,8 +9,9 @@ android {
         applicationId 'com.pocketledger.v6.preview'
         minSdk 26
         targetSdk 36
-        versionCode 9
-        versionName '6.0.8'
+        testInstrumentationRunner 'com.pocketledger.v2.ReviewRegressionInstrumentation'
+        versionCode 23
+        versionName '6.1.0-preview.14'
     }
 
     // Release signing credentials are read from gitignored local.properties
@@ -45,6 +46,8 @@ android {
 }
 
 dependencies {
+    // Bundled text model: receipt recognition works without a first-use download.
+    implementation 'com.google.mlkit:text-recognition:16.0.1'
     // RecyclerView for reorderable category/payment lists
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
     // Room — local database (primary source of truth in V2)

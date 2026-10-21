@@ -26,6 +26,16 @@ public final class TransactionEntity {
     public String transactionId = "";   // UUID, e.g. "550e8400-e29b-..."
 
     public double amount;
+    @NonNull @ColumnInfo(defaultValue = "'EXPENSE'") public String kind = "EXPENSE";
+    @ColumnInfo(defaultValue = "-1") public long amountMinor = -1;
+    @ColumnInfo(defaultValue = "-1") public long personalMinor = -1;
+    @ColumnInfo(defaultValue = "0") public long effectiveAt;
+    @NonNull @ColumnInfo(defaultValue = "''") public String accountId = "";
+    @NonNull @ColumnInfo(defaultValue = "''") public String destinationId = "";
+    @NonNull @ColumnInfo(defaultValue = "''") public String routeId = "";
+    @NonNull @ColumnInfo(defaultValue = "''") public String personId = "";
+    @NonNull @ColumnInfo(defaultValue = "''") public String originalId = "";
+    @NonNull @ColumnInfo(defaultValue = "'{}'") public String shares = "{}";
     public String category  = "";
     public String paymentMode = "";
     public String remarks   = "";

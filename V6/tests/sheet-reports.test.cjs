@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const ctx=vm.createContext({});vm.runInContext(fs.readFileSync(require.resolve('../Backend/AppsScript.gs'),'utf8'),ctx);const modelFor=l=>JSON.parse(JSON.stringify(ctx.ledgerReportModel(l,Date.now())));
+const now=Date.now()-60000;
+const account=(accountId,type,openingMinor)=>({accountId,name:accountId,type,openingMinor,openingAt:now-1000,position:0,archived:false,deleted:false,updatedAt:now});
+const tx=(transactionId,kind,amountMinor,accountId,extra={})=>({transactionId,kind,amountMinor,personalMinor:kind==='EXPENSE'?amountMinor:0,accountId,destinationId:'',personId:'',originalId:'',routeId:'',shares:{},effectiveAt:now,createdAt:now,updatedAt:now,deleted:false,spendingType:'NEED',category:'Food',paymentMode:accountId,remarks:'',...extra});
+const ledger={ledgerSchema:1,accounts:[account('sbi','BANK',1000000),account('cash','CASH',100000),account('card','CARD',-200000)],paymentRoutes:[],people:[{personId:'rahul',name:'Rahul',updatedAt:now,deleted:false,archived:false}],transactions:[tx('salary','INCOME',2000000,'sbi'),tx('atm','TRANSFER',100000,'sbi',{destinationId:'cash'}),tx('dinner','EXPENSE',120000,'sbi',{personalMinor:40000,shares:{rahul:80000}}),tx('repay','REPAYMENT_IN',80000,'cash',{originalId:'dinner',personId:'rahul'}),tx('purchase','EXPENSE',50000,'card'),tx('cardpay','TRANSFER',200000,'sbi',{destinationId:'card'})]};
+const model=modelFor(ledger);
+const balances=Object.fromEntries(model.accounts.map(a=>[a[0],a[4]]));assert.deepEqual(balances,{card:-500,cash:2800,sbi:25800});
+assert.equal(model.accounts.reduce((n,a)=>n+a[4],0),28100);assert.equal(model.people[0][1],0);
+assert.equal(model.activity.reduce((n,a)=>n+a[6],0),900);assert.equal(model.activity.reduce((n,a)=>n+a[7],0),20000);
+const changed=structuredClone(ledger);changed.transactions.push(tx('refund','REFUND',10000,'sbi',{personalMinor:10000,originalId:'dinner',spendingType:'WANT'}));
+let m=modelFor(changed);assert.equal(m.activity.find(r=>r[13]==='refund')[9],'NEED');assert.equal(m.activity.reduce((n,a)=>n+a[6],0),800);
+const historic=structuredClone(ledger);historic.transactions.push(tx('historic','EXPENSE',10000,'sbi',{effectiveAt:now-2000,category:'',remarks:'=IMPORTXML("bad")'}));
+const report={model:modelFor(historic)};assert.equal(report.model.accounts.find(a=>a[0]==='sbi')[4],25800,'Before opening balance cutoff must not be deducted twice');assert.ok(report.model.categories.includes('Other'));
+const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE friends (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL, nameKey TEXT NOT NULL UNIQUE)');db.prepare('INSERT INTO friends VALUES (?,?,?)').run('rahul','Rahul','rahul');
+const java=fs.readFileSync(require.resolve('../NativeExpenseEntry/app/src/main/java/com/pocketledger/v2/BillSplitStore.java'),'utf8');db.exec(java.match(/db.execSQL\("(ALTER TABLE friends[^"\n]+)"\)/)[1]);assert.deepEqual({...db.prepare('SELECT * FROM friends').get()},{id:'rahul',name:'Rahul',nameKey:'rahul',updatedAt:0});db.close();
+console.log('PASS: financial summaries, balances, personal expense/income, refund tags, opening cutoff, and saved-friend migration.');

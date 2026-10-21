@@ -36,9 +36,9 @@ final class ConfigStore {
     void setUrl(String value)  { prefs.edit().putString("url", value.trim()).apply(); }
 
     String verifiedUrl()               { return prefs.getString("verifiedUrl", ""); }
-    boolean spendingSyncVerified()    { return prefs.getInt("verifiedSpendingTypeSchema", 0) == 1; }
-    void setVerifiedUrl(String url)    { prefs.edit().putString("verifiedUrl", url == null ? "" : url.trim()).putInt("verifiedSpendingTypeSchema", 1).apply(); }
-    void clearVerifiedUrl()            { prefs.edit().putString("verifiedUrl", "").remove("verifiedSpendingTypeSchema").apply(); }
+    boolean spendingSyncVerified()    { return prefs.getInt("verifiedSpendingTypeSchema", 0) == 1 && prefs.getInt("verifiedLedgerSchema",0)==1; }
+    void setVerifiedUrl(String url)    { prefs.edit().putString("verifiedUrl", url == null ? "" : url.trim()).putInt("verifiedSpendingTypeSchema", 1).putInt("verifiedLedgerSchema",1).apply(); }
+    void clearVerifiedUrl()            { prefs.edit().putString("verifiedUrl", "").remove("verifiedSpendingTypeSchema").remove("verifiedLedgerSchema").apply(); }
 
     long lastSyncAt()                  { return prefs.getLong("lastSyncAt", 0); }
     void recordSync(long epochMillis)  { prefs.edit().putLong("lastSyncAt", epochMillis).apply(); }
@@ -71,6 +71,8 @@ final class ConfigStore {
     }
 
     void setCategories(List<String> values) { setList("categories", canonicalize(values, "🏷️")); }
+    List<String> incomeCategories() { return normalized("incomeCategories", Arrays.asList("Salary", "Freelance", "Gift", "Interest", "Other"), "🏷️"); }
+    void setIncomeCategories(List<String> values) { setList("incomeCategories", values); }
 
     // ── Payment modes ─────────────────────────────────────────────────────────
 

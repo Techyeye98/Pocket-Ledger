@@ -48,11 +48,13 @@ final class SyncClient {
                 return Result.fail("Script reached. Update Apps Script for Need/Want sync.");
             JSONObject capabilities = new JSONObject(resp);
             if (!"success".equalsIgnoreCase(capabilities.optString("status", ""))
-                    || capabilities.optInt("spendingTypeSchema", 0) != 1) {
+                    || capabilities.optInt("spendingTypeSchema", 0) != 1 || capabilities.optInt("ledgerSchema",0) != 1) {
                 return Result.fail("Connection reached the endpoint, but it did not return the expected response.",
                         "Endpoint response: " + truncate(resp));
             }
-            return Result.ok("Connected · Need/Want sync supported");
+            return Result.ok(capabilities.optInt("dashboardSchema",0)==1
+                    ? "Connected · ledger sync and dashboard supported"
+                    : "Connected · update Apps Script to enable the latest dashboard");
         } catch (java.net.SocketTimeoutException e) {
             return Result.fail("Connection test timed out.");
         } catch (IllegalArgumentException e) {
@@ -67,6 +69,31 @@ final class SyncClient {
      * If the failure is an HTTP status failure ("HTTP nnn: …"), return just the status
      * so the UI can show e.g. "Could not reach the endpoint. HTTP 500" without the body.
      */
+    static JSONObject ledgerRequest(String address, JSONObject request) throws Exception {
+        JSONObject response = new JSONObject(executeWithRedirects(address,"POST",request.toString().getBytes(StandardCharsets.UTF_8)));
+        if(!"success".equals(response.optString("status")))throw new IllegalStateException(response.optString("message","Ledger sync failed"));
+        return response;
+    }
+
+    static Ledger restoreLedger(String address) throws Exception {
+        JSONObject response=ledgerRequest(address,new JSONObject().put("action","LEDGER_FETCH").put("ledgerSchema",1));
+        if(response.optInt("ledgerSchema",0)==1)return LedgerJson.read(response.getJSONObject("ledger"));
+        throw new IllegalArgumentException("Update Apps Script before restoring accounts and people.");
+    }
+
+    static void refreshDashboard(String address) throws Exception {
+        ledgerRequest(address,new JSONObject().put("action","DASHBOARD_REFRESH").put("ledgerSchema",1));
+    }
+
+    static Ledger pushLedger(String address,Ledger snapshot,String requestId,String[] reportWarning) throws Exception {
+        Result capability=test(address);
+        if(!capability.success)throw new IllegalStateException(capability.message+" Your data remains local.");
+        JSONObject response=ledgerRequest(address,new JSONObject().put("action","LEDGER_PUSH").put("ledgerSchema",1).put("requestId",requestId).put("ledger",LedgerJson.write(snapshot)));
+        if(response.optInt("ledgerSchema",0)!=1||!requestId.equals(response.optString("requestId")))throw new IllegalStateException("Ledger sync was not confirmed");
+        reportWarning[0]=response.optInt("dashboardSchema",0)==1?response.optString("dashboardWarning",""):"Update Apps Script to enable automatic dashboard refresh.";
+        return LedgerJson.read(response.getJSONObject("ledger"));
+    }
+
     private static String httpStatus(Exception e) {
         String m = e.getMessage();
         if (m != null) {

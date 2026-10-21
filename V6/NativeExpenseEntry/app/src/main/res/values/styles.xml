@@ -1,4 +1,19 @@
 <resources>
+    <style name="Animation.PocketLedger" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/ledger_window_enter</item>
+        <item name="android:activityOpenExitAnimation">@anim/ledger_window_hold</item>
+        <item name="android:activityCloseEnterAnimation">@anim/ledger_window_hold</item>
+        <item name="android:activityCloseExitAnimation">@anim/ledger_window_exit</item>
+    </style>
+
+    <style name="Theme.PocketLedger.Ledger" parent="Theme.PocketLedger">
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowAnimationStyle">@style/Animation.PocketLedger</item>
+    </style>
+    <style name="Theme.PocketLedger.Ledger.Dark" parent="Theme.PocketLedger.Dark">
+        <item name="android:windowDisablePreview">true</item>
+        <item name="android:windowAnimationStyle">@style/Animation.PocketLedger</item>
+    </style>
     <!-- Base app theme: material light, no action bar -->
     <style name="Theme.PocketLedger" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:fontFamily">sans</item>

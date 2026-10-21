@@ -28,7 +28,7 @@ public interface TransactionDao {
     // ── READ ─────────────────────────────────────────────────────────────────
 
     /** All non-deleted transactions, newest first. */
-    @Query("SELECT * FROM transactions WHERE deleted = 0 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM transactions WHERE deleted = 0 ORDER BY effectiveAt DESC")
     List<TransactionEntity> getAll();
 
     /** All transactions including soft-deleted tombstones (used for full backups). */
@@ -36,7 +36,7 @@ public interface TransactionDao {
     List<TransactionEntity> getAllForBackup();
 
     /** Transactions for a specific time range (inclusive), non-deleted, newest first. */
-    @Query("SELECT * FROM transactions WHERE deleted = 0 AND createdAt >= :fromTime AND createdAt <= :toTime ORDER BY createdAt DESC")
+    @Query("SELECT * FROM transactions WHERE deleted = 0 AND effectiveAt >= :fromTime AND effectiveAt <= :toTime ORDER BY effectiveAt DESC")
     List<TransactionEntity> getByTimeRange(long fromTime, long toTime);
 
     /** Single transaction by UUID (including tombstoned — used for sync). */
@@ -46,14 +46,6 @@ public interface TransactionDao {
     /** Rows pending sync (new, edited, or deleted). */
     @Query("SELECT * FROM transactions WHERE syncStatus != 'SYNCED'")
     List<TransactionEntity> getPendingSync();
-
-    /** Total expenses for a time range (non-deleted). */
-    @Query("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE deleted = 0 AND createdAt >= :fromTime AND createdAt <= :toTime")
-    double sumByTimeRange(long fromTime, long toTime);
-
-    /** Count of transactions for a time range (non-deleted). */
-    @Query("SELECT COUNT(*) FROM transactions WHERE deleted = 0 AND createdAt >= :fromTime AND createdAt <= :toTime")
-    int countByTimeRange(long fromTime, long toTime);
 
     // ── SOFT DELETE ──────────────────────────────────────────────────────────
 
@@ -69,7 +61,5 @@ public interface TransactionDao {
     @Query("UPDATE transactions SET syncStatus = 'SYNCED' WHERE transactionId = :id")
     void markSynced(String id);
 
-    /** Hard-delete tombstoned rows that are confirmed synced (call after successful sync). */
-    @Query("DELETE FROM transactions WHERE deleted = 1 AND syncStatus = 'SYNCED'")
-    void purgeConfirmedDeletions();
+    // Keep deletion tombstones so imports cannot resurrect removed financial records.
 }

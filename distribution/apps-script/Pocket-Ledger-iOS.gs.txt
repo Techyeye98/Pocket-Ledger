@@ -1,0 +1,39 @@
+function doPost(e) {
+
+  const sheet = SpreadsheetApp
+    .getActiveSpreadsheet()
+    .getSheetByName("Transactions");
+
+  const data = JSON.parse(e.postData.contents);
+
+  const values = sheet.getRange(
+    1,
+    1,
+    sheet.getMaxRows(),
+    8
+  ).getValues();
+
+  let lastDataRow = 1;
+
+  // Find the last row containing actual data
+  for (let i = values.length - 1; i >= 0; i--) {
+    if (values[i].some(cell => cell !== "")) {
+      lastDataRow = i + 1;
+      break;
+    }
+  }
+
+  // Add data directly below the last transaction
+  sheet.getRange(lastDataRow + 1, 1, 1, 8).setValues([[
+    data.date,
+    data.month,
+    data.time,
+    data.category,
+    data.amount,
+    data.paymentMode,
+    data.remarks,
+    data.deviceName
+  ]]);
+
+  return ContentService.createTextOutput("Success");
+}

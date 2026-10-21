@@ -1,0 +1,13 @@
+{
+  "name": "lenis",
+  "version": "1.3.27",
+  "source": "https://github.com/darkroomengineering/lenis",
+  "tarball": "https://registry.npmjs.org/lenis/-/lenis-1.3.27.tgz",
+  "integrity": "sha512-QIHNH4LIfWyLfgH/5K0aTGZgyFJJ7GfHNcaH/AIgyKjb8gstLh5siNGvrVqz1w5ClLXzOvllBVk7vby8JzUVPQ==",
+  "license": "MIT",
+  "files": {
+    "lenis.min.js": "80f53e77f1c13e379fc246d2b5e299188e20bcb2b2fe7ebb13e8e8c7563a6da7",
+    "lenis.css": "2f668ae84a668327f246faf8a770383a2bf69196d214290fbc4d5548910606c5",
+    "LICENSE": "7d1896b31f2eed9f286b05faca067c4e35b2f109ae7c4ed5105220e2d2820228"
+  }
+}

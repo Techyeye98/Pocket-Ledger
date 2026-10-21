@@ -19,6 +19,8 @@ for (const row of db.prepare('SELECT * FROM transactions ORDER BY transactionId'
   delete row.spendingType;
   assert.deepEqual(row, before.find(old => old.transactionId === row.transactionId));
 }
+const migration23 = migrationSource.slice(migrationSource.indexOf('static final Migration MIGRATION_2_3'), migrationSource.indexOf('try (android.database.Cursor'));
+for (const match of migration23.matchAll(/db\.execSQL\("([^"\n]+)"\)/g)) db.exec(match[1]);
 const generated = fs.readFileSync(path.join(root, 'NativeExpenseEntry/app/build/generated/ap_generated_sources/debug/out/com/pocketledger/v2/AppDatabase_Impl.java'), 'utf8');
 const fresh = new DatabaseSync(':memory:');
 fresh.exec(generated.match(/db\.execSQL\("(CREATE TABLE IF NOT EXISTS `transactions`[^"\n]+)"\)/)[1]);

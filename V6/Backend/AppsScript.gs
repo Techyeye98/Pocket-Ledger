@@ -1,5 +1,6 @@
 /**
- * Pocket Ledger — Google Apps Script Backend with Need/Want tags
+ * @OnlyCurrentDoc
+ * Pocket Ledger — ledger sync and current accounts/income/people dashboard
  *
  * V2 Contract:
  *   - POST requests with JSON body containing "action" field
@@ -33,11 +34,13 @@
  */
 
 var SHEET_NAME = "Transactions";
+var PL_SUPPORT_SHEET_NAME = "Sync Support - Do not edit";
 
 function doGet(e) {
   if (e && e.parameter && e.parameter.action === "CAPABILITIES")
-    return jsonOutput({ status: "success", spendingTypeSchema: 1 });
+    return jsonOutput({ status: "success", spendingTypeSchema: 1, ledgerSchema: 1, dashboardSchema: 1 });
   if (e && e.parameter && (e.parameter.action === "FETCH" || e.parameter.action === "RESTORE")) {
+    if (ledgerIsActive()) return errorResult("Use the upgraded app to restore the full ledger.");
     return handleFetch();
   }
   return ContentService.createTextOutput("ok");
@@ -47,6 +50,10 @@ function doPost(e) {
   try {
     var payload = JSON.parse(e.postData.contents);
     var action  = payload.action;
+    if (action === "LEDGER_PUSH" || action === "LEDGER_FETCH" || action === "DASHBOARD_REFRESH") return ledgerEndpoint(payload);
+    var legacyLock=LockService.getScriptLock();legacyLock.waitLock(30000);
+    try {
+    if (ledgerIsActive() && action !== "CAPABILITIES") return errorResult("This Sheet uses accounts and people. Update the app before editing or restoring it.");
 
     if (action === "CREATE")           return handleCreate(payload);
     if (action === "UPDATE")           return handleUpdate(payload);
@@ -55,6 +62,7 @@ function doPost(e) {
     if (action === "FETCH" || action === "RESTORE") return handleFetch();
 
     return errorResult("unknown action: " + action);
+    } finally { legacyLock.releaseLock(); }
   } catch (err) {
     var msg = (err && err.message) ? err.message : String(err);
     return errorResult(msg);
@@ -251,18 +259,23 @@ function handleFetch() {
   }
 
   var header = data[0];
+  var canvasTypeColumn=header.indexOf('Type');
   // New V2 layout: "Transaction Id" lives in column 9 (index 8).
   var isV2 = header.length >= 9 && String(header[8]).trim().toLowerCase() === "transaction id";
 
   var list = [];
   for (var i = 1; i < data.length; i++) {
     var row = data[i];
+    if(canvasTypeColumn>=0&&String(row[canvasTypeColumn])==='ACCOUNT_SNAPSHOT')continue;
     // Skip completely empty rows
     var isEmpty = true;
     for (var j = 0; j < row.length; j++) {
       if (row[j] !== "") { isEmpty = false; break; }
     }
     if (isEmpty) continue;
+
+    // Clearing visible cells can leave account metadata or custom values behind.
+    if (!row[0] && (row[4] === '' || row[4] == null) && !String(row[8] || '').trim()) continue;
 
     if (isV2) {
       var txId = String(row[8] || "").trim(); // I Transaction Id
@@ -322,6 +335,8 @@ function handleFetch() {
 
 function getSheet() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var support = ss.getSheetByName(PL_SUPPORT_SHEET_NAME);
+  if (support) return support;
   var sheet = ss.getSheetByName(SHEET_NAME);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME);
@@ -643,7 +658,233 @@ function migrateTransactionsV2() {
  */
 function onOpen() {
   SpreadsheetApp.getUi()
-    .createMenu("V2 Migration")
+    .createMenu("Pocket Ledger")
+    .addItem("Set up / refresh latest dashboard", "setupPocketLedger")
+    .addItem("Use clean Transactions + separate sync support", "setupCleanTransactions")
+    .addSeparator()
     .addItem("Migrate " + SHEET_NAME + " (one-time)", "migrateTransactionsV2")
     .addToUi();
+}
+
+// Ledger schema 1: richer records alongside the original Transactions columns.
+function ledgerIsActive() {
+  var s=getSheet(),h=s.getRange(1,1,1,s.getLastColumn()).getValues()[0],c=h.indexOf('PL Snapshot Pointer');
+  if(c>=0&&s.getRange(2,c+1).getValue())return true;
+  var m=SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Ledger Metadata');
+  return !!(m&&m.getRange(1,1).getValue());
+}
+function ledgerCheck(ok,msg){if(!ok)throw new Error(msg);}
+function ledgerEmpty(){return {ledgerSchema:1,accounts:[],paymentRoutes:[],people:[],transactions:[]};}
+var LEDGER_KEYS={accounts:'accountId',paymentRoutes:'routeId',people:'personId',transactions:'transactionId'};
+function ledgerRead(){
+  var current=plReadSnapshot();if(current)return plReadCanvasEdits(current);
+  var book=SpreadsheetApp.getActiveSpreadsheet(),meta=book.getSheetByName('Ledger Metadata'),revision=meta?String(meta.getRange(1,1).getValue()):'';
+  if(!revision){
+    var old=JSON.parse(handleFetch().getContent()),out=ledgerEmpty();
+    out.transactions=(old.transactions||[]).map(function(t){
+      t.kind='EXPENSE';t.amountMinor=Math.round((Number(t.amount)+Number.EPSILON)*100);t.personalMinor=t.amountMinor;
+      var d=String(t.date).split('-'),h=String(t.time||'00:00:00').split(':');
+      t.effectiveAt=d.length===3?new Date(+d[2],+d[1]-1,+d[0],+h[0],+h[1],+h[2]).getTime():Number(t.createdAt);
+      t.accountId='';t.destinationId='';t.routeId='';t.personId='';t.originalId='';t.shares={};t.syncStatus='SYNC_PENDING';return t;
+    });return out;
+  }
+  var sheet=book.getSheetByName('Ledger Records');ledgerCheck(sheet,'Missing ledger records');var result=ledgerEmpty();
+  sheet.getDataRange().getValues().forEach(function(row){if(String(row[0])===revision){ledgerCheck(Array.isArray(result[row[1]]),'Invalid collection');result[row[1]].push(JSON.parse(row[7]));}});
+  var count=Object.keys(LEDGER_KEYS).reduce(function(n,k){return n+result[k].length;},0);
+  ledgerCheck(count===Number(meta.getRange(1,2).getValue()),'Incomplete ledger snapshot');ledgerValidate(result);return result;
+}
+function ledgerMerge(local,remote){
+  var result=ledgerEmpty();Object.keys(LEDGER_KEYS).forEach(function(group){var map=Object.create(null),key=LEDGER_KEYS[group];local[group].forEach(function(x){map[x[key]]=x;});remote[group].forEach(function(x){var old=map[x[key]];if(!old||x.updatedAt>=old.updatedAt)map[x[key]]=x;});result[group]=Object.keys(map).map(function(id){return map[id];});});ledgerValidate(result);return result;
+}
+function ledgerValidate(l){
+  ledgerCheck(l&&l.ledgerSchema===1,'Unsupported ledger schema');var maps={},max=9000000000000000;
+  function integer(n){return Number.isSafeInteger(n)&&Math.abs(n)<=max;}
+  function add(a,b){ledgerCheck(integer(a+b),'Total exceeds supported amount');return a+b;}
+  Object.keys(LEDGER_KEYS).forEach(function(group){
+    ledgerCheck(Array.isArray(l[group]),'Missing '+group);maps[group]=Object.create(null);
+    l[group].forEach(function(x){var id=x[LEDGER_KEYS[group]];ledgerCheck(typeof id==='string'&&id&&id.length<=160&&!maps[group][id],'Invalid or duplicate ID');ledgerCheck(integer(x.updatedAt)&&x.updatedAt>=0,'Invalid update timestamp');ledgerCheck(JSON.stringify(x).length<45000,'Record too large');maps[group][id]=x;});
+  });
+  l.accounts.forEach(function(a){ledgerCheck(typeof a.name==='string'&&a.name.trim()&&['BANK','CASH','WALLET','CARD'].indexOf(a.type)>=0,'Invalid account');ledgerCheck(integer(a.openingMinor)&&integer(a.openingAt)&&a.openingAt>0&&a.openingAt<=Date.now(),'Invalid opening balance');});
+  l.people.forEach(function(p){ledgerCheck(typeof p.name==='string'&&p.name.trim(),'Invalid person');});
+  l.paymentRoutes.forEach(function(r){ledgerCheck(typeof r.label==='string'&&r.label.trim()&&maps.accounts[r.accountId]&&(r.deleted||!maps.accounts[r.accountId].deleted),'Invalid payment route');});
+  var kinds=['EXPENSE','INCOME','TRANSFER','LEND','BORROW','FRIEND_PAID','REPAYMENT_IN','REPAYMENT_OUT','WRITE_OFF_RECEIVABLE','FORGIVE_PAYABLE','REFUND','ADJUSTMENT'];
+  var obligations=Object.create(null),personalRefunds=Object.create(null),friendRefunds=Object.create(null);
+  l.transactions.forEach(function(t){
+    ledgerCheck(kinds.indexOf(t.kind)>=0&&integer(t.amountMinor)&&integer(t.personalMinor),'Invalid transaction amount/type');
+    if(t.deleted)return;
+    ledgerCheck(t.amountMinor>0||t.kind==='ADJUSTMENT'&&t.amountMinor!==0,'Amount must be positive');
+    ledgerCheck(integer(t.effectiveAt)&&t.effectiveAt>0&&t.effectiveAt<=Date.now(),'Invalid entry date');
+    var a=maps.accounts[t.accountId],noAccount=['FRIEND_PAID','WRITE_OFF_RECEIVABLE','FORGIVE_PAYABLE'].indexOf(t.kind)>=0;
+    ledgerCheck(noAccount?!t.accountId:t.kind==='EXPENSE'&&!t.accountId||a&&!a.deleted,'Choose an account');
+    if(['INCOME','BORROW','LEND','REPAYMENT_IN','REPAYMENT_OUT','TRANSFER'].indexOf(t.kind)>=0)ledgerCheck(a&&a.type!=='CARD','Use bank, cash or wallet');
+    if(t.kind==='TRANSFER')ledgerCheck(t.accountId!==t.destinationId&&maps.accounts[t.destinationId]&&!maps.accounts[t.destinationId].deleted,'Invalid transfer destination');else ledgerCheck(!t.destinationId,'Unexpected destination account');
+    if(t.routeId)ledgerCheck(maps.paymentRoutes[t.routeId]&&maps.paymentRoutes[t.routeId].accountId===t.accountId,'Payment route mismatch');
+    ledgerCheck(t.shares&&typeof t.shares==='object'&&!Array.isArray(t.shares),'Invalid shares');var total=0;
+    Object.keys(t.shares).forEach(function(p){var n=t.shares[p];ledgerCheck(maps.people[p]&&!maps.people[p].deleted&&integer(n)&&n>0,'Invalid person/share');total=add(total,n);if(t.kind==='EXPENSE')obligations[t.transactionId+'/'+p]={remaining:n,receive:true};});
+    if(t.kind==='EXPENSE'||t.kind==='REFUND')ledgerCheck(t.personalMinor>=0&&add(t.personalMinor,total)===t.amountMinor,'Shares must equal the total');else ledgerCheck(total===0,'Unexpected friend shares');
+    if(['LEND','BORROW','FRIEND_PAID','REPAYMENT_IN','REPAYMENT_OUT','WRITE_OFF_RECEIVABLE','FORGIVE_PAYABLE'].indexOf(t.kind)>=0)ledgerCheck(maps.people[t.personId]&&!maps.people[t.personId].deleted,'Missing person');
+    if(['LEND','BORROW','FRIEND_PAID'].indexOf(t.kind)>=0)obligations[t.transactionId+'/'+t.personId]={remaining:t.amountMinor,receive:t.kind==='LEND'};
+    if(t.kind==='FRIEND_PAID')ledgerCheck(t.personalMinor===t.amountMinor,'Invalid personal share');
+  });
+  l.transactions.forEach(function(t){
+    if(t.deleted)return;var child=['REFUND','REPAYMENT_IN','REPAYMENT_OUT','WRITE_OFF_RECEIVABLE','FORGIVE_PAYABLE'].indexOf(t.kind)>=0;
+    if(!child){ledgerCheck(!t.originalId,'Unexpected original entry');return;}
+    var origin=maps.transactions[t.originalId];ledgerCheck(origin&&!origin.deleted&&origin.transactionId!==t.transactionId&&t.effectiveAt>=origin.effectiveAt,'Original entry is missing or later than repayment');
+    if(t.kind==='REFUND'){
+      ledgerCheck(origin.kind==='EXPENSE','Only an expense can be refunded');personalRefunds[t.originalId]=add(personalRefunds[t.originalId]||0,t.personalMinor);ledgerCheck(personalRefunds[t.originalId]<=origin.personalMinor,'Refund exceeds your share');
+      Object.keys(t.shares).forEach(function(p){var key=t.originalId+'/'+p;friendRefunds[key]=add(friendRefunds[key]||0,t.shares[p]);ledgerCheck(obligations[key]&&friendRefunds[key]<=(origin.shares[p]||0),'Refund exceeds friend share');obligations[key].remaining=add(obligations[key].remaining,-t.shares[p]);});
+    }else{var debt=obligations[t.originalId+'/'+t.personId],receive=t.kind==='REPAYMENT_IN'||t.kind==='WRITE_OFF_RECEIVABLE';ledgerCheck(debt&&debt.receive===receive,'Wrong repayment person/direction');debt.remaining=add(debt.remaining,-t.amountMinor);}
+  });
+  Object.keys(obligations).forEach(function(key){ledgerCheck(obligations[key].remaining>=0,'Repayment exceeds outstanding amount');});
+}
+function ledgerEndpoint(p){
+  var lock=LockService.getScriptLock();lock.waitLock(30000);
+  try{
+    ledgerCheck(p.ledgerSchema===1,'Update app for ledger sync');
+    if(p.action==='LEDGER_FETCH')return jsonOutput({status:'success',ledgerSchema:1,ledger:ledgerRead()});
+    if(p.action==='DASHBOARD_REFRESH'){ledgerRefreshReports(ledgerRead());return jsonOutput({status:'success',ledgerSchema:1,dashboardSchema:1});}
+    ledgerCheck(typeof p.requestId==='string'&&p.requestId,'Missing request ID');ledgerValidate(p.ledger);
+    var merged=ledgerMerge(ledgerRead(),p.ledger);
+    plWriteSnapshot(merged);
+    var reportWarning='';try{ledgerRefreshReports(merged);}catch(reportError){reportWarning=String(reportError.message||reportError);}
+    return jsonOutput({status:'success',ledgerSchema:1,dashboardSchema:1,dashboardWarning:reportWarning,requestId:p.requestId,ledger:merged});
+  }catch(e){return errorResult(String(e.message||e));}finally{lock.releaseLock();}
+}
+
+// Readable reports are derived from the committed snapshot, never used as sync inputs.
+// Financial summaries feed the existing Canvas; no report tabs are created.
+function ledgerReportModel(l,now){
+  ledgerValidate(l);now=now||Date.now();
+  var accounts=Object.create(null),people=Object.create(null),transactions=Object.create(null),debts=Object.create(null);
+  function add(a,b){var n=a+b;ledgerCheck(Number.isSafeInteger(n)&&Math.abs(n)<=9000000000000000,'Report total exceeds supported amount');return n;}
+  l.accounts.forEach(function(a){accounts[a.accountId]=a;});l.people.forEach(function(p){people[p.personId]=p;});l.transactions.forEach(function(t){transactions[t.transactionId]=t;});
+  function name(map,id){return id?(map[id]?map[id].name:'Unknown'):'Unassigned';}
+  function expense(t){if(t.kind==='EXPENSE'||t.kind==='FRIEND_PAID')return t.personalMinor;if(t.kind==='REFUND')return -t.personalMinor;if(t.kind==='WRITE_OFF_RECEIVABLE')return t.amountMinor;return 0;}
+  function income(t){return t.kind==='INCOME'||t.kind==='FORGIVE_PAYABLE'?t.amountMinor:0;}
+  function effect(t,id){if(t.kind==='TRANSFER')return t.accountId===id?-t.amountMinor:t.destinationId===id?t.amountMinor:0;if(!id||t.accountId!==id)return 0;if(['EXPENSE','LEND','REPAYMENT_OUT'].indexOf(t.kind)>=0)return -t.amountMinor;if(['INCOME','BORROW','REPAYMENT_IN','REFUND','ADJUSTMENT'].indexOf(t.kind)>=0)return t.amountMinor;return 0;}
+  var active=l.transactions.filter(function(t){return !t.deleted&&t.effectiveAt<=now;}),unassigned=0;
+  active.forEach(function(t){if(t.kind==='EXPENSE'){if(!t.accountId)unassigned++;Object.keys(t.shares).forEach(function(p){debts[t.transactionId+'/'+p]={person:p,receive:true,remaining:t.shares[p]};});}if(['LEND','BORROW','FRIEND_PAID'].indexOf(t.kind)>=0)debts[t.transactionId+'/'+t.personId]={person:t.personId,receive:t.kind==='LEND',remaining:t.amountMinor};});
+  active.forEach(function(t){if(!t.originalId)return;if(t.kind==='REFUND')Object.keys(t.shares).forEach(function(p){var d=debts[t.originalId+'/'+p];if(d)d.remaining=add(d.remaining,-t.shares[p]);});else{var d=debts[t.originalId+'/'+t.personId];if(d)d.remaining=add(d.remaining,-t.amountMinor);}});
+  var accountRows=l.accounts.filter(function(a){return !a.deleted;}).sort(function(a,b){return a.position-b.position||a.name.localeCompare(b.name);}).map(function(a){
+    var change=0;active.forEach(function(t){if(t.effectiveAt>=a.openingAt)change=add(change,effect(t,a.accountId));});var balance=add(a.openingMinor,change),card=a.type==='CARD';
+    return [a.name,a.type,a.openingMinor/100,change/100,balance/100,card?0:balance/100,card?Math.max(0,-balance)/100:0,card?Math.max(0,balance)/100:0,a.archived?'Archived':'Active',a.accountId,new Date(a.openingAt)];
+  });
+  var personRows=l.people.filter(function(p){return !p.deleted;}).map(function(p){var receive=0,pay=0;Object.keys(debts).forEach(function(key){var d=debts[key];if(d.person===p.personId){if(d.receive)receive=add(receive,d.remaining);else pay=add(pay,d.remaining);}});return [p.name,receive/100,pay/100,(receive-pay)/100,p.archived?'Archived':'Active',p.personId];});
+  var activity=active.slice().sort(function(a,b){return b.effectiveAt-a.effectiveAt;}).map(function(t){var origin=transactions[t.originalId],tag=t.kind==='REFUND'&&origin?origin.spendingType:t.spendingType;
+    return [new Date(t.effectiveAt),t.kind,t.category||'Other',name(accounts,t.accountId),t.destinationId?name(accounts,t.destinationId):'',t.amountMinor/100,expense(t)/100,income(t)/100,(income(t)-expense(t))/100,tag||'UNTAGGED',t.personId?name(people,t.personId):'',t.paymentMode||'',t.remarks||'',t.transactionId];
+  });
+  return {accounts:accountRows,people:personRows,activity:activity,unassigned:unassigned,categories:Array.from(new Set(active.filter(function(t){return expense(t)!==0;}).map(function(t){return t.category||'Other';}))).sort()};
+}
+// Canvas sync keeps the original Dashboard and uses only the existing Transactions tab.
+var PL_CANVAS_HEADERS=['Type','Account','Account type','Destination account','Personal amount','Income','Account balance','Card dues','Person','To receive','To pay','Account ID','Destination ID','Person ID','Original entry ID'];
+var PL_STORAGE_HEADERS=['PL Snapshot A','PL Snapshot B','PL Snapshot Pointer','PL Snapshot Count'];
+function plHeaders(create){
+  var s=getSheet(),h=s.getRange(1,1,1,s.getLastColumn()).getValues()[0];
+  if(create){
+    getSpendingTypeColumn(s);h=s.getRange(1,1,1,s.getLastColumn()).getValues()[0];
+    PL_CANVAS_HEADERS.concat(PL_STORAGE_HEADERS).forEach(function(name){if(h.indexOf(name)<0){h.push(name);if(s.getMaxColumns()<h.length)s.insertColumnsAfter(s.getMaxColumns(),h.length-s.getMaxColumns());s.getRange(1,h.length).setValue(name);}});
+    ledgerCheck(PL_STORAGE_HEADERS.every(function(name,i){return h.indexOf(name)===h.indexOf(PL_STORAGE_HEADERS[0])+i;}),'Sync storage columns must remain together');
+    if(s.hideColumns)s.hideColumns(h.indexOf(PL_STORAGE_HEADERS[0])+1,4);
+  }
+  return {sheet:s,headers:h};
+}
+function plReadSnapshot(){
+  var layout=plHeaders(false),h=layout.headers,s=layout.sheet,c=h.indexOf('PL Snapshot Pointer');
+  if(c<0)return null;var pointer=s.getRange(2,c+1,1,2).getValues()[0];if(!pointer[0])return null;
+  ledgerCheck(pointer[0]==='A'||pointer[0]==='B','Invalid snapshot pointer');
+  var count=Number(pointer[1]);ledgerCheck(Number.isSafeInteger(count)&&count>=0&&count<=s.getMaxRows()-1,'Invalid snapshot count');
+  var out=ledgerEmpty(),column=h.indexOf('PL Snapshot '+pointer[0])+1;ledgerCheck(column>0,'Missing snapshot column');
+  if(count)s.getRange(2,column,count,1).getValues().forEach(function(row){var item=JSON.parse(row[0]);ledgerCheck(Object.prototype.hasOwnProperty.call(LEDGER_KEYS,item.group),'Invalid snapshot collection');out[item.group].push(item.value);});
+  ledgerValidate(out);return out;
+}
+function plWriteSnapshot(ledger){
+  var layout=plHeaders(true),s=layout.sheet,h=layout.headers,pc=h.indexOf('PL Snapshot Pointer')+1;
+  var slot=s.getRange(2,pc).getValue()==='A'?'B':'A',rows=[];
+  Object.keys(LEDGER_KEYS).forEach(function(group){ledger[group].forEach(function(value){rows.push([JSON.stringify({group:group,value:value})]);});});
+  if(s.getMaxRows()<rows.length+1)s.insertRowsAfter(s.getMaxRows(),rows.length+1-s.getMaxRows());
+  if(rows.length)s.getRange(2,h.indexOf('PL Snapshot '+slot)+1,rows.length,1).setNumberFormat('@').setValues(rows);
+  SpreadsheetApp.flush();
+  // Commit the inactive buffer only after all records have been written successfully.
+  s.getRange(2,pc,1,2).setValues([[slot,rows.length]]);SpreadsheetApp.flush();
+}
+function plLiteral(value){return typeof value==='string'&&/^[=+@-]/.test(value)?"'"+value:value;}
+function plReadCanvasEdits(ledger){
+  var layout=plHeaders(false),h=layout.headers,rows=layout.sheet.getDataRange().getValues(),byId=Object.create(null);
+  ledger.transactions.forEach(function(t){byId[t.transactionId]=t;});
+  function cell(row,name){var c=h.indexOf(name);return c<0?'':row[c];}
+  rows.slice(1).forEach(function(row){
+    var kind=String(cell(row,'Type')||'EXPENSE'),id=String(row[8]||'');
+    if(!id||kind==='ACCOUNT_SNAPSHOT'||kind==='ACCOUNT'||!row[0])return;
+    var old=byId[id],updated=Number(row[10])||0;
+    if(old&&updated<=old.updatedAt)return;
+    var t=old?JSON.parse(JSON.stringify(old)):{transactionId:id,shares:{},routeId:'',syncStatus:'SYNC_PENDING'};
+    t.kind=kind;t.amountMinor=Math.round(Number(row[4])*100);
+    var personal=cell(row,'Personal amount');t.personalMinor=personal!==''?Math.round(Number(personal)*100):kind==='EXPENSE'||kind==='FRIEND_PAID'?t.amountMinor:0;
+    t.accountId=String(cell(row,'Account ID')||t.accountId||'');t.destinationId=String(cell(row,'Destination ID')||t.destinationId||'');t.personId=String(cell(row,'Person ID')||t.personId||'');t.originalId=String(cell(row,'Original entry ID')||t.originalId||'');
+    t.date=formatDateCell(row[0]);t.time=formatTimeCell(row[2]);t.effectiveAt=old&&t.date===old.date&&t.time===old.time?old.effectiveAt:parseEpoch(t.date,t.time);t.amount=t.amountMinor/100;
+    t.category=String(row[3]||'');t.paymentMode=String(row[5]||'');t.remarks=String(row[6]||'');t.deviceName=String(row[7]||'');t.createdAt=old?old.createdAt:Number(row[9])||updated;t.updatedAt=updated;
+    t.deleted=row[11]===true||String(row[11]).toLowerCase()==='true';t.spendingType=normalizeSpendingType(cell(row,'Spending Type'));
+    if(!old)ledger.transactions.push(t);else ledger.transactions[ledger.transactions.indexOf(old)]=t;
+    byId[id]=t;
+  });ledgerValidate(ledger);return ledger;
+}
+function ledgerRefreshReports(ledger){
+  var layout=plHeaders(true),s=layout.sheet,h=layout.headers,data=s.getDataRange().getValues(),model=ledgerReportModel(ledger,Date.now()),byId=Object.create(null),accounts=Object.create(null),people=Object.create(null),desired=[];
+  ledger.accounts.forEach(function(a){accounts[a.accountId]=a;});ledger.people.forEach(function(p){people[p.personId]=p;});
+  for(var i=1;i<data.length;i++){var id=String(data[i][8]||'');if(id){ledgerCheck(byId[id]===undefined,'Duplicate transaction ID in Sheet');byId[id]=i;}}
+  ledger.transactions.forEach(function(t){var a=accounts[t.accountId],dest=accounts[t.destinationId],person=people[t.personId];
+    var original=ledger.transactions.filter(function(x){return x.transactionId===t.originalId;})[0];
+    desired.push({'Date':t.date||new Date(t.effectiveAt),'Month':t.month||'', 'Time':t.time||'', 'Category':t.category||'', 'Amount':t.amountMinor/100,'Payment Mode':t.paymentMode||'', 'Remarks':t.remarks||'', 'Device Name':t.deviceName||'', 'Transaction Id':t.transactionId,'Created At':t.createdAt,'Updated At':t.updatedAt,'Deleted':!!t.deleted,'Spending Type':t.kind==='REFUND'&&original?original.spendingType||'UNTAGGED':t.spendingType||'UNTAGGED','Type':t.kind,'Account':a?a.name:'','Account type':a?a.type:'','Destination account':dest?dest.name:'','Personal amount':t.personalMinor/100,'Income':t.kind==='INCOME'||t.kind==='FORGIVE_PAYABLE'?t.amountMinor/100:0,'Account balance':'','Card dues':'','Person':person?person.name:'','To receive':'','To pay':'','Account ID':t.accountId||'','Destination ID':t.destinationId||'','Person ID':t.personId||'','Original entry ID':t.originalId||''});
+  });
+  var stamp=Date.now();
+  model.accounts.forEach(function(a){desired.push({'Transaction Id':'PL_ACCOUNT:'+a[9],'Type':'ACCOUNT_SNAPSHOT','Account':a[0],'Account type':a[1],'Account balance':a[4],'Card dues':a[6],'Account ID':a[9],'Updated At':stamp,'Deleted':false});});
+  model.people.forEach(function(p){desired.push({'Transaction Id':'PL_PERSON:'+p[5],'Type':'ACCOUNT_SNAPSHOT','Person':p[0],'To receive':p[1],'To pay':p[2],'Person ID':p[5],'Updated At':stamp,'Deleted':false});});
+  var visible=['Date','Month','Time','Category','Amount','Payment Mode','Remarks','Device Name','Transaction Id','Created At','Updated At','Deleted','Spending Type'].concat(PL_CANVAS_HEADERS),touched=Object.create(null);
+  desired.forEach(function(values){var id=values['Transaction Id'],r=byId[id];if(r===undefined){r=data.length;data.push([]);byId[id]=r;}touched[id]=true;visible.forEach(function(name){data[r][h.indexOf(name)]=Object.prototype.hasOwnProperty.call(values,name)?plLiteral(values[name]):'';});});
+  for(var r=1;r<data.length;r++){
+    var id=String(data[r][8]||'');
+    if(/^PL_(ACCOUNT|PERSON):/.test(id)&&!touched[id])data[r][h.indexOf('Deleted')]=true;
+    // Storage-only rows must not become zero-amount expenses in the Canvas.
+    if(!id&&!data[r].slice(0,8).some(function(v){return v!==''&&v!=null;}))data[r][h.indexOf('Type')]='ACCOUNT_SNAPSHOT';
+  }
+  var count=data.length-1;if(s.getMaxRows()<data.length)s.insertRowsAfter(s.getMaxRows(),data.length-s.getMaxRows());
+  // Write owned columns only; custom columns, formulas, layout and Dashboard are untouched.
+  var columns=visible.map(function(name){return h.indexOf(name);}).sort(function(a,b){return a-b;});
+  for(var k=0;k<columns.length;){var start=columns[k],end=start;while(k+1<columns.length&&columns[k+1]===end+1){k++;end++;}if(count)s.getRange(2,start+1,count,end-start+1).setValues(data.slice(1).map(function(row){return Array.from({length:end-start+1},function(_,j){return row[start+j]===undefined?'':row[start+j];});}));k++;}
+  if(SpreadsheetApp.getActiveSpreadsheet().getSheetByName(PL_SUPPORT_SHEET_NAME))plRefreshCleanTransactions(ledger);
+  SpreadsheetApp.flush();return model;
+}
+function setupPocketLedger(){var lock=LockService.getScriptLock();lock.waitLock(30000);try{var ledger=ledgerRead();plWriteSnapshot(ledger);ledgerRefreshReports(ledger);}finally{lock.releaseLock();}}
+
+// The raw sheet keeps its ID so the existing Canvas retains its original data binding.
+function setupCleanTransactions(){
+  var lock=LockService.getScriptLock();lock.waitLock(30000);
+  try{
+    var book=SpreadsheetApp.getActiveSpreadsheet(),ledger=ledgerRead(),raw=getSheet();
+    ledgerValidate(ledger);
+    if(raw.getName()!==PL_SUPPORT_SHEET_NAME)raw.setName(PL_SUPPORT_SHEET_NAME);
+    plWriteSnapshot(ledger);ledgerRefreshReports(ledger);
+    raw.hideSheet();
+  }finally{lock.releaseLock();}
+}
+function plRefreshCleanTransactions(ledger){
+  var book=SpreadsheetApp.getActiveSpreadsheet(),sheet=book.getSheetByName(SHEET_NAME);
+  if(!sheet)sheet=book.insertSheet(SHEET_NAME);
+  var headers=['Date','Month','Time','Category','Amount','Payment Mode','Account','Remarks','Type','Spending Type','Personal amount'];
+  var oldHeight=sheet.getLastRow(),accounts=Object.create(null),rows=[];
+  ledger.accounts.forEach(function(a){accounts[a.accountId]=a.name;});
+  ledger.transactions.filter(function(t){return !t.deleted;}).sort(function(a,b){return b.effectiveAt-a.effectiveAt||a.transactionId.localeCompare(b.transactionId);}).forEach(function(t){
+    var month=t.month||new Date(t.effectiveAt).toLocaleString('en-US',{month:'long'});
+    rows.push([t.date||formatDateCell(new Date(t.effectiveAt)),month,t.time||formatTimeCell(new Date(t.effectiveAt)),t.category||'',t.amountMinor/100,t.paymentMode||'',accounts[t.accountId]||'',t.remarks||'',t.kind,t.spendingType==='UNTAGGED'?'':t.spendingType||'',t.kind==='EXPENSE'||t.kind==='REFUND'||t.kind==='FRIEND_PAID'?t.personalMinor/100:''].map(plLiteral));
+  });
+  if(sheet.getMaxColumns()<headers.length)sheet.insertColumnsAfter(sheet.getMaxColumns(),headers.length-sheet.getMaxColumns());
+  if(sheet.getMaxRows()<rows.length+1)sheet.insertRowsAfter(sheet.getMaxRows(),rows.length+1-sheet.getMaxRows());
+  sheet.getRange(1,1,1,headers.length).setValues([headers]);
+  if(rows.length)sheet.getRange(2,1,rows.length,headers.length).setValues(rows);
+  if(oldHeight>rows.length+1)sheet.getRange(rows.length+2,1,oldHeight-rows.length-1,headers.length).clearContent();
+  sheet.getRange(1,1).setNote('Report only. Edit entries in the app or Dashboard. Sync Support holds balances, IDs and deletion markers; do not clear it.');
+  sheet.setFrozenRows(1);
+  sheet.getRange(1,1,1,headers.length).setFontWeight('bold').setBackground('#d9ead3').setWrap(true);
+  sheet.getRange(2,5,Math.max(1,rows.length),1).setNumberFormat('#,##0.00');
+  sheet.getRange(2,11,Math.max(1,rows.length),1).setNumberFormat('#,##0.00');
 }

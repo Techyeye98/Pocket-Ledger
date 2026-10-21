@@ -1,0 +1,7 @@
+{
+  "name": "gsap",
+  "version": "3.15.0",
+  "tarball": "https://registry.npmjs.org/gsap/-/gsap-3.15.0.tgz",
+  "integrity": "sha512-dMW4CWBTUK1AEEDeZc1g4xpPGIrSf9fJF960qbTZmN/QwZIWY5wgliS6JWl9/25fpTGJrMRtSjGtOmPnfjZB+A==",
+  "license": "Standard 'no charge' license: https://gsap.com/standard-license."
+}

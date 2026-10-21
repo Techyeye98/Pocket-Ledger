@@ -31,6 +31,8 @@ public class QuickEntryActivity extends Activity {
     private LinearLayout categoryContainer;
     private LinearLayout paymentContainer;
     private Button saveButton;
+    private java.util.List<PaymentChoice> ledgerPayments = new java.util.ArrayList<>();
+    private boolean paymentLoaded;
     private String selectedCategory = "";
     private String selectedPayment = "";
 
@@ -173,6 +175,20 @@ public class QuickEntryActivity extends Activity {
         saveButton.setOnClickListener(v -> submit());
         root.addView(footer);
 
+        if (!widgetEntry) {
+            LinearLayout types = new LinearLayout(this);
+            Button expense = LedgerUi.chip(this, "Expense", true);
+            Button income = LedgerUi.chip(this, "Income", false);
+            Button more = LedgerUi.chip(this, "More", false);
+            for(Button button:new Button[]{expense,income,more}){
+                LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(0,ViewGroup.LayoutParams.WRAP_CONTENT,1);p.setMarginEnd(dp(6));types.addView(button,p);
+            }
+            LinearLayout.LayoutParams modeParams=match();modeParams.bottomMargin=dp(20);content.addView(types,0,modeParams);
+            income.setOnClickListener(v -> openLedger("entry","INCOME"));
+            more.setOnClickListener(v -> LedgerUi.choose(this,"More actions",java.util.Arrays.asList("Split payment / Change date","Transfer / Pay card","Lend / Borrow","Accounts"),-1,which -> {
+                openLedger(which==3?"accounts":"entry",which==1?"TRANSFER":which==2?"LEND":"EXPENSE");
+            }));
+        }
         loadSelections();
         Intent intent = getIntent();
         if (intent != null) {
@@ -241,8 +257,14 @@ public class QuickEntryActivity extends Activity {
         for (String category : store.categories())
             categoryContainer.addView(buildChip(category, category.equals(selectedCategory), true));
         paymentContainer.removeAllViews();
-        for (String payment : store.paymentModes())
-            paymentContainer.addView(buildChip(payment, payment.equals(selectedPayment), false));
+        if (ledgerPayments.isEmpty()) {
+            for (String payment : store.paymentModes())
+                paymentContainer.addView(buildChip(payment, payment.equals(selectedPayment), false));
+        } else for (PaymentChoice choice : ledgerPayments) {
+            View chip = buildChip(choice.id, choice.id.equals(selectedPayment), false);
+            ((TextView) chip).setText(choice.label);
+            paymentContainer.addView(chip);
+        }
     }
 
     private View buildChip(String value, boolean active, boolean category) {
@@ -263,7 +285,41 @@ public class QuickEntryActivity extends Activity {
         return chip;
     }
 
+    private void openLedger(String page,String kind){
+        startActivity(LedgerActivity.intent(this,page).putExtra("kind",kind).putExtra("amount",amountField.getText().toString()).putExtra("note",noteField.getText().toString()).putExtra("paymentChoice",selectedPayment));
+        finish();
+    }
+
+    private void loadPayments() {
+        paymentLoaded = false;
+        new Thread(() -> {
+            try {
+                Ledger snapshot = Ledger.load(AppDatabase.get(this));
+                List<PaymentChoice> choices = PaymentChoice.list(snapshot, true);
+                runOnUiThread(() -> {
+                    if (isFinishing()) return;
+                    ledgerPayments = choices;
+                    if (!choices.isEmpty()) {
+                        String preferred = getSharedPreferences("ledger_ui", 0).getString("defaultPayment", "");
+                        if (preferred.isEmpty()) preferred = getSharedPreferences("ledger_ui", 0).getString("lastPayment", "");
+                        boolean exists = false;
+                        for (PaymentChoice c : choices) if (c.id.equals(selectedPayment)) exists = true;
+                        if (!exists) {
+                            selectedPayment = choices.get(0).id;
+                            for (PaymentChoice c : choices) if (c.id.equals(preferred)) selectedPayment = c.id;
+                        }
+                    }
+                    paymentLoaded = true;
+                    renderChips();
+                });
+            } catch (Exception e) { runOnUiThread(() -> Components.customToast(this, "Could not load payment accounts. Reopen entry to retry.", true)); }
+        }).start();
+    }
+
+    @Override protected void onResume() { super.onResume(); if (store != null && paymentContainer != null) loadPayments(); }
+
     private void submit() {
+        if (!paymentLoaded) { Components.customToast(this, "Loading payment accounts…", true); return; }
         double amount;
         try { amount = Double.parseDouble(AmountUtil.normalize(amountField.getText().toString())); }
         catch (Exception error) { Components.customToast(this, "Enter a valid amount", true); return; }
@@ -278,9 +334,16 @@ public class QuickEntryActivity extends Activity {
         tx.transactionId = java.util.UUID.randomUUID().toString();
         tx.date = new java.text.SimpleDateFormat("dd-MM-yyyy", Locale.US).format(new java.util.Date(now));
         tx.time = new java.text.SimpleDateFormat("HH:mm:ss", Locale.US).format(new java.util.Date(now));
-        tx.amount = amount;
+        try { tx.amountMinor = Money.parse(amountField.getText().toString()); }
+        catch (Exception e) { saveButton.setEnabled(true); saveButton.setText("Save expense"); Components.customToast(this, "Use at most two decimal places", true); return; }
+        tx.personalMinor = tx.amountMinor;
+        tx.effectiveAt = now;
+        tx.amount = tx.amountMinor / 100.0;
+        for (PaymentChoice c : ledgerPayments) if (c.id.equals(selectedPayment)) {
+            tx.accountId = c.accountId; tx.routeId = c.routeId; tx.paymentMode = c.label;
+        }
         tx.category = store.backendValue(selectedCategory);
-        tx.paymentMode = store.backendValue(selectedPayment);
+        if (tx.accountId.isEmpty()) tx.paymentMode = store.backendValue(selectedPayment);
         tx.remarks = noteField.getText().toString().trim();
         tx.spendingType = spendingTypePicker.getValue();
         tx.deviceName = store.deviceName();
@@ -291,12 +354,18 @@ public class QuickEntryActivity extends Activity {
 
         new Thread(() -> {
             try {
-                AppDatabase.get(this).transactionDao().insert(tx);
+                LedgerStore.save(this, tx);
+                boolean belowZero = false;
+                try { Ledger after = Ledger.load(AppDatabase.get(this)); AccountEntity savedAccount = after.account(tx.accountId);
+                    belowZero = savedAccount != null && !savedAccount.isCard() && after.balance(savedAccount) < 0;
+                } catch (Exception ignored) { /* A warning must not turn a committed save into a failure. */ }
+                final boolean negative = belowZero;
                 runOnUiThread(() -> {
-                    store.recordSelection(selectedCategory, selectedPayment);
+                    store.recordSelection(selectedCategory, tx.paymentMode);
+                    if (!tx.accountId.isEmpty()) getSharedPreferences("ledger_ui", 0).edit().putString("lastPayment", selectedPayment).apply();
                     store.recordOperation("Expense saved", true, "Saved locally · " + tx.date + " " + tx.time);
                     NotificationHelper.saved(this);
-                    Components.customToast(this, "Expense saved locally", false);
+                    Components.customToast(this, negative ? "Expense saved · account balance is negative" : "Expense saved locally", false);
                     sendBroadcast(new Intent(getPackageName() + ".DATA_UPDATED").setPackage(getPackageName()));
                     closeEntry();
                 });
@@ -305,7 +374,7 @@ public class QuickEntryActivity extends Activity {
                     if (result.synced > 0) store.recordSync(System.currentTimeMillis());
                     if (result.synced > 0 || result.failed > 0)
                         store.recordOperation("Auto sync", result.failed == 0,
-                                result.synced + " synced" + (result.failed > 0 ? ", " + result.failed + " failed: " + result.lastError : ""));
+                                result.synced + " synced" + (result.failed > 0 ? ", " + result.failed + " failed: " + result.lastError : result.lastError.isEmpty()?"":", Dashboard: "+result.lastError));
                 } catch (Exception ignored) {
                     // A failed mirror must never turn a successful local save into an error.
                 }

@@ -1,0 +1,74 @@
+[
+  {
+    "file": "03-need-want-insights.png",
+    "sha256": "dc61a344fb567fee7e40424e7052c43a7b8e25890f89a5e0639c671edac1602b",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "11-entry-types-menu.png",
+    "sha256": "378dba4f28c713003918e721258eac22755cd7bfbe84467d216a13ed5c8e0640",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "12-add-expense-form.png",
+    "sha256": "830c09bf419709f8ef42184ea0acf5dbb1c2a3c03f5e94fc055d94ea6d447dba",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "14-lena-dena-overview.png",
+    "sha256": "2059b38893f86e40644f2a0380cd9382308916572d3b2f361fd6e73b7a3457e3",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "15-person-linked-outstanding.png",
+    "sha256": "cc36a9e0cea47e682811fc91d78ead6751a33d8a45b117a4aaa7eabd81c594c4",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "21-item-shares-and-portions.png",
+    "sha256": "5b1b19730e2a8c1b83a7a4e9c644dd681d72d9627999e595debc9d409c7ff537",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "23-tax-final-amount-discount.png",
+    "sha256": "3cfb6beea195fde086604abfbdcc9d6c7bed9b9b0b389055b2c5611b028ff714",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "28-saved-split-result.png",
+    "sha256": "9508853473eed19d604fd99b7a8e1f331bd8602e92bb384dad6b3152d5a85abe",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "32-partial-reimbursement-result.png",
+    "sha256": "f03b05f2fc6a9b85638a84d77f2d0dc5a3f8866749dcafd3b570bbfa12a8516e",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "36-receipt-tax-final-review.png",
+    "sha256": "85ba8be3a50a94daaca2f09bee241c1f25b5ad01d59bbd34d09036e7409c3036",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "40-backup-data-support.png",
+    "sha256": "bc51ef1586061b08af0b971a1a56ed1de2b22c4cdd07e1840e5c9cf31efb54c7",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  },
+  {
+    "file": "49-add-account-empty-form.png",
+    "sha256": "3e6de6eec82e700d725048a4687cb0020b3735c802b2ab20a407a1bc5ef86a3b",
+    "pixelEdits": false,
+    "presentation": "native frame, focus window, highlights and numbered callouts"
+  }
+]

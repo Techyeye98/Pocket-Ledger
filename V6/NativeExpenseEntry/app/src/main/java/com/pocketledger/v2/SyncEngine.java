@@ -18,6 +18,16 @@ import java.util.Set;
  * Google Sheets is the cloud mirror; Room is the primary local store + pending queue.
  */
 final class SyncEngine {
+    static synchronized SyncResult clearTransactionHistory(Context context,ConfigStore store) throws Exception {
+        // Read the Sheet first so cloud-only entries are included in the same reset.
+        String address=store.url();Ledger remote=address.isEmpty()?null:SyncClient.restoreLedger(address);
+        AppDatabase db=AppDatabase.get(context);
+        db.runInTransaction(()->{
+            Ledger local=Ledger.load(db),all=remote==null?local:LedgerJson.merge(local,remote);
+            LedgerJson.persist(db,all.clearedTransactions(System.currentTimeMillis()));
+        });
+        try{return syncAllPending(context,address);}catch(Exception e){return new SyncResult(0,1,e.getMessage());}
+    }
 
     static final class SyncResult {
         final int    synced;
@@ -41,51 +51,32 @@ final class SyncEngine {
      * On success, each fully-synced transaction is marked SYNCED in Room;
      * failed transactions remain safely pending for the next sync.
      */
-    static SyncResult syncAllPending(Context context, ConfigStore store) {
-        String url = store.url();
+    static synchronized SyncResult syncAllPending(Context context, ConfigStore store) {
+        return syncAllPending(context,store.url());
+    }
+    private static SyncResult syncAllPending(Context context,String url) {
         if (url == null || url.trim().isEmpty()) {
             return new SyncResult(0, 0, "");
         }
 
-        TransactionDao dao = AppDatabase.get(context).transactionDao();
-        List<TransactionEntity> pending = dao.getPendingSync();
-        if (pending.isEmpty()) {
-            return new SyncResult(0, 0, "");
-        }
-
-        // Decision #4 — push the whole queue in ONE HTTP POST instead of one
-        // request per transaction. Apps Script cold-start (~1.5s) + sheet-lock
-        // contention made serial sync take 30-60s for 20+ items; a batch does it
-        // in a single round-trip and reports success/failure per item.
-        List<SyncClient.PendingOp> ops = new ArrayList<>(pending.size());
-        for (TransactionEntity tx : pending) {
-            String action;
-            if (tx.deleted)                                                    action = "DELETE";
-            else if (TransactionEntity.SYNC_LOCAL_ONLY.equals(tx.syncStatus)) action = "CREATE";
-            else                                                               action = "UPDATE";
-            ops.add(new SyncClient.PendingOp(tx, action));
-        }
-
-        SyncClient.BatchResult br = SyncClient.pushBatch(url, ops, store);
-        Set<String> confirmed = new HashSet<>(br.confirmedIds);
-
-        int successCount = 0;
-        int failCount    = 0;
-        String lastErr   = br.lastError;
-
-        for (SyncClient.PendingOp op : ops) {
-            if (confirmed.contains(op.tx.transactionId)) {
-                dao.markSynced(op.tx.transactionId);
-                successCount++;
-            } else {
-                failCount++;
-                if (lastErr.isEmpty()) {
-                    lastErr = "Transaction " + op.tx.transactionId + " was not confirmed by the server.";
+        AppDatabase db=AppDatabase.get(context);
+        final Ledger[] snapshot=new Ledger[1];
+        db.runInTransaction(()->snapshot[0]=Ledger.load(db));
+        try {
+            String[] reportWarning={""};
+            Ledger confirmed=SyncClient.pushLedger(url,snapshot[0],java.util.UUID.randomUUID().toString(),reportWarning);
+            db.runInTransaction(()->{
+                Ledger local=Ledger.load(db);
+                Ledger merged=LedgerJson.merge(local,confirmed);
+                LedgerJson.persist(db,merged);
+                for(TransactionEntity sent:snapshot[0].transactions) {
+                    TransactionEntity current=db.transactionDao().findById(sent.transactionId);
+                    TransactionEntity remote=confirmed.transaction(sent.transactionId);
+                    if(current!=null&&remote!=null&&current.updatedAt==sent.updatedAt&&remote.updatedAt==sent.updatedAt)db.transactionDao().markSynced(sent.transactionId);
                 }
-            }
-        }
+            });
+            return new SyncResult(snapshot[0].transactions.size()+snapshot[0].accounts.size()+snapshot[0].routes.size()+snapshot[0].people.size(),0,reportWarning[0]);
+        } catch(Exception e) {return new SyncResult(0,Math.max(1,snapshot[0].transactions.size()),e.getMessage());}
 
-        dao.purgeConfirmedDeletions();
-        return new SyncResult(successCount, failCount, lastErr);
     }
 }

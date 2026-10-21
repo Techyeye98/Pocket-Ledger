@@ -18,12 +18,12 @@ import java.util.TimeZone;
  * Format:
  * {
  *   "format": "pocket-ledger-backup",
- *   "version": 2,
+ *   "version": 3,
  *   "exportedAt": "2026-09-12T15:10:00Z",
  *   "appName": "Pocket Ledger",
  *   "appVersion": "2.0.0",
  *   "transactions": [ ... ],
- *   "settings": { ... } // optional for older backups
+ *   "settings": { ... }, // optional for older backups
  * }
  *
  * Invariants:
@@ -36,7 +36,7 @@ import java.util.TimeZone;
 final class BackupManager {
 
     static final String BACKUP_FORMAT = "pocket-ledger-backup";
-    static final int SUPPORTED_VERSION = 2;
+    static final int SUPPORTED_VERSION = 4;
 
     private BackupManager() {}
 
@@ -46,7 +46,7 @@ final class BackupManager {
     static String createBackupJson(Context context, List<TransactionEntity> transactions) throws Exception {
         JSONObject root = new JSONObject();
         root.put("format", BACKUP_FORMAT);
-        root.put("version", SUPPORTED_VERSION);
+        root.put("version", 3); // Financial ledger only; split bills remain device-local.
 
         SimpleDateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US);
         isoFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -73,34 +73,21 @@ final class BackupManager {
         savedSettings.put("recentEntriesHidden", settings.recentEntriesHidden);
         root.put("settings", savedSettings);
 
-        JSONArray arr = new JSONArray();
-        for (TransactionEntity tx : transactions) {
-            JSONObject obj = new JSONObject();
-            obj.put("transactionId", tx.transactionId);
-            obj.put("amount", tx.amount);
-            obj.put("category", tx.category != null ? tx.category : "");
-            obj.put("paymentMode", tx.paymentMode != null ? tx.paymentMode : "");
-            obj.put("remarks", tx.remarks != null ? tx.remarks : "");
-            obj.put("spendingType", SpendingType.normalize(tx.spendingType));
-            obj.put("date", tx.date != null ? tx.date : "");
-            obj.put("month", extractMonth(tx.date)); // "September" not "September-2026"
-            obj.put("time", tx.time != null ? tx.time : "");
-            obj.put("deviceName", tx.deviceName != null ? tx.deviceName : "");
-            obj.put("createdAt", tx.createdAt);
-            obj.put("updatedAt", tx.updatedAt);
-            obj.put("syncStatus", tx.syncStatus != null ? tx.syncStatus : TransactionEntity.SYNC_LOCAL_ONLY);
-            obj.put("deleted", tx.deleted);
-            arr.put(obj);
-        }
-        root.put("transactions", arr);
+        AppDatabase db = AppDatabase.get(context);
+        final JSONObject[] snapshot = new JSONObject[1];
+        db.runInTransaction(() -> { try { snapshot[0] = LedgerJson.write(Ledger.load(db)); } catch (Exception e) { throw new IllegalStateException(e); } });
+        JSONObject ledger = snapshot[0];
+        root.put("ledgerSchema",1).put("accounts",ledger.getJSONArray("accounts")).put("paymentRoutes",ledger.getJSONArray("paymentRoutes")).put("people",ledger.getJSONArray("people")).put("transactions",ledger.getJSONArray("transactions"));
+        JSONObject preferences = new JSONObject();
+        preferences.put("incomeCategories",stringArray(new ConfigStore(context).incomeCategories()));
+        android.content.SharedPreferences ui=context.getSharedPreferences("ledger_ui",0);
+        for(String key:new String[]{"defaultPayment","lastPayment","selectedAccount"})preferences.put(key,ui.getString(key,""));
+        root.put("ledgerPreferences",preferences);
 
         String json = root.toString(2);
         ValidationResult check = validateBackup(json);
         if (!check.success || !settings.sameAs(check.settings))
             throw new IllegalStateException("Backup verification failed: " + check.error);
-        for (int i = 0; i < transactions.size(); i++)
-            if (!SpendingType.normalize(transactions.get(i).spendingType).equals(check.transactions.get(i).spendingType))
-                throw new IllegalStateException("Backup spending type verification failed.");
         return json;
     }
 
@@ -128,7 +115,21 @@ final class BackupManager {
 
             int version = root.optInt("version", -1);
             if (version < 1 || version > SUPPORTED_VERSION) {
-                return ValidationResult.fail("Unsupported backup version: " + version + " (supported: 1–2).");
+                return ValidationResult.fail("Unsupported backup version: " + version + " (supported: 1–4).");
+            }
+
+            if (version >= 3) {
+                Ledger ledger = LedgerJson.read(root);
+                ConfigStore.BackupSettings settings = root.has("settings") ? readSettings(root.getJSONObject("settings")) : null;
+                ValidationResult result = ValidationResult.ok(ledger.transactions,settings);
+                result.ledger = ledger;
+                // Accept older preview v4 financial data without importing its optional splitter data.
+                if(root.has("ledgerPreferences")) {
+                    JSONObject preferences=root.getJSONObject("ledgerPreferences");readList(preferences,"incomeCategories");
+                    for(String key:new String[]{"defaultPayment","lastPayment","selectedAccount"})readText(preferences,key);
+                    result.preferences=preferences;
+                }
+                return result;
             }
 
             JSONArray arr = root.optJSONArray("transactions");
@@ -171,6 +172,7 @@ final class BackupManager {
                 tx.syncStatus    = obj.optString("syncStatus", TransactionEntity.SYNC_PENDING);
                 tx.deleted       = obj.optBoolean("deleted", false);
 
+                tx.amountMinor=Money.legacy(tx.amount);tx.personalMinor=tx.amountMinor;tx.effectiveAt=Ledger.effectiveDate(tx.date,tx.time,tx.createdAt);
                 list.add(tx);
             }
 
@@ -241,53 +243,6 @@ final class BackupManager {
         return result;
     }
 
-    /**
-     * Non-destructive merge into Room database.
-     * Uses transactionId as stable key and updatedAt for conflict resolution.
-     */
-    static MergeResult mergeBackup(TransactionDao dao, List<TransactionEntity> importedTxs) {
-        int added = 0;
-        int updated = 0;
-        int deleted = 0;
-        int preserved = 0;
-
-        for (TransactionEntity imp : importedTxs) {
-            TransactionEntity local = dao.findById(imp.transactionId);
-
-            if (local == null) {
-                if (imp.deleted) {
-                    // Deleted in backup and doesn't exist locally: do not resurrect
-                    preserved++;
-                } else {
-                    // New item: insert with SYNC_PENDING so user can sync later if desired
-                    imp.syncStatus = TransactionEntity.SYNC_PENDING;
-                    dao.insert(imp);
-                    added++;
-                }
-            } else {
-                // Exists locally: compare timestamps
-                if (local.updatedAt >= imp.updatedAt) {
-                    // Local is newer or identical: keep local version untouched
-                    preserved++;
-                } else {
-                    // Imported version is newer
-                    if (imp.deleted) {
-                        // Apply tombstone to local transaction
-                        dao.softDelete(local.transactionId, imp.updatedAt);
-                        deleted++;
-                    } else {
-                        // Update with newer imported data
-                        imp.syncStatus = TransactionEntity.SYNC_PENDING;
-                        dao.update(imp);
-                        updated++;
-                    }
-                }
-            }
-        }
-
-        return new MergeResult(added, updated, deleted, preserved, importedTxs.size());
-    }
-
     private static String extractMonth(String dateStr) {
         if (dateStr == null || dateStr.trim().isEmpty()) return "";
         try {
@@ -306,6 +261,8 @@ final class BackupManager {
         final String error;
         final List<TransactionEntity> transactions;
         final ConfigStore.BackupSettings settings;
+        Ledger ledger;
+        JSONObject preferences;
 
         private ValidationResult(boolean s, String err, List<TransactionEntity> t, ConfigStore.BackupSettings settings) {
             this.success = s;

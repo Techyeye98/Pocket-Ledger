@@ -18,14 +18,14 @@ public class Components {
 
     public static void addPressAnimation(View v) {
         v.setOnTouchListener((view, event) -> {
-            if (!ValueAnimator.areAnimatorsEnabled()) return false;
+            if (!ValueAnimator.areAnimatorsEnabled()) { view.setScaleX(1);view.setScaleY(1);return false; }
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
-                    view.animate().scaleX(0.985f).scaleY(0.985f).setDuration(110).start();
+                    view.animate().scaleX(0.985f).scaleY(0.985f).setDuration(110).setInterpolator(ScreenPresenter.EASE_OUT).start();
                     break;
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
-                    view.animate().scaleX(1f).scaleY(1f).setDuration(170).start();
+                    view.animate().scaleX(1f).scaleY(1f).setDuration(150).setInterpolator(ScreenPresenter.EASE_OUT).start();
                     break;
             }
             return false;

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <exclude domain="database" path="pocket_ledger_splits.db" />
+    <exclude domain="database" path="pocket_ledger_splits.db-wal" />
+    <exclude domain="database" path="pocket_ledger_splits.db-shm" />
+    <exclude domain="database" path="pocket_ledger_splits.db-journal" />
+</full-backup-content>

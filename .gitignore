@@ -31,6 +31,8 @@ tmp/
 
 # Local runtimes, phone captures and generated authoring files are not releases.
 node_modules/
+__pycache__/
+*.pyc
 /V6/guide-captures/
 /output/
 

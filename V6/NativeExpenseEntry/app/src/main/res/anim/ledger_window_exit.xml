@@ -1,0 +1,5 @@
+<set xmlns:android="http://schemas.android.com/apk/res/android"
+    android:interpolator="@interpolator/ledger_ease_out">
+    <alpha android:fromAlpha="1" android:toAlpha="0" android:duration="120" />
+    <translate android:fromYDelta="0" android:toYDelta="8dp" android:duration="120" />
+</set>

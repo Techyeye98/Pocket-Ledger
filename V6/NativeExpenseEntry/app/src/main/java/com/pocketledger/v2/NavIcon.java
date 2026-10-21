@@ -14,6 +14,7 @@ public class NavIcon extends View {
     public static final int ICON_BACK = 6;
     public static final int ICON_CHEVRON = 7;
     public static final int ICON_ARCHIVE = 8;
+    public static final int ICON_SPLIT_BILL = 9;
     
     private int type;
     private Paint paint;
@@ -75,6 +76,13 @@ public class NavIcon extends View {
         } else if (type == ICON_CHEVRON) {
             canvas.drawLine(cx - p / 2, cy - p, cx + p / 2, cy, paint);
             canvas.drawLine(cx + p / 2, cy, cx - p / 2, cy + p, paint);
+        } else if (type == ICON_SPLIT_BILL) {
+            android.graphics.Path receipt=new android.graphics.Path();
+            receipt.moveTo(w*.2f,h*.12f);receipt.lineTo(w*.8f,h*.12f);receipt.lineTo(w*.8f,h*.82f);
+            receipt.lineTo(w*.65f,h*.74f);receipt.lineTo(w*.5f,h*.84f);receipt.lineTo(w*.35f,h*.74f);receipt.lineTo(w*.2f,h*.82f);receipt.close();
+            canvas.drawPath(receipt,paint);canvas.drawLine(w*.35f,h*.3f,w*.65f,h*.3f,paint);
+            canvas.drawLine(cx,h*.43f,cx,h*.53f,paint);canvas.drawLine(w*.35f,h*.53f,w*.65f,h*.53f,paint);
+            canvas.drawLine(w*.35f,h*.53f,w*.35f,h*.64f,paint);canvas.drawLine(w*.65f,h*.53f,w*.65f,h*.64f,paint);
         } else if (type == ICON_ARCHIVE) {
             canvas.drawRect(p, cy - p / 2, w - p, h - p, paint);
             canvas.drawLine(p, cy - p * 1.5f, w - p, cy - p * 1.5f, paint);

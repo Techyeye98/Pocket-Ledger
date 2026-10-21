@@ -1,212 +1,138 @@
 (() => {
+  'use strict';
   const root = document.documentElement;
+  const deviceMotion = matchMedia('(prefers-reduced-motion: reduce)');
+  try { if(localStorage.getItem('pl-motion')==='off') root.dataset.motionPreference='off'; } catch {}
+  const reducedMotion = {get matches(){return deviceMotion.matches || root.dataset.motionPreference==='off';}};
+  const finePointer = matchMedia('(hover: hover) and (pointer: fine)');
   const themeButton = document.getElementById('theme-toggle');
   const menuButton = document.getElementById('menu-toggle');
   const mobileNav = document.getElementById('mobile-nav');
-  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const finePointer = window.matchMedia('(hover: hover) and (pointer: fine)');
-
-  const hero = document.querySelector('.hero');
-  const heroTraces = document.querySelector('.hero-traces');
-  const heroBeats = document.querySelector('.hero-beats');
-  const heroGlow = document.querySelector('.hero-glow');
-  let pointerTarget = { x: 0, y: 0 };
-  let pointerCurrent = { x: 0, y: 0 };
-  let pointerFrame = 0;
-  let heroVisible = true;
-  function syncTravel() {
-    if (reducedMotion.matches || document.hidden || !heroVisible) heroTraces.pauseAnimations();
-    else heroTraces.unpauseAnimations();
-  }
-  const resetHeroDepth = () => {
-    pointerTarget = { x: 0, y: 0 };
-    if (!pointerFrame) pointerFrame = requestAnimationFrame(animateHeroDepth);
+  const updateTheme = () => {
+    const dark = root.dataset.theme !== 'light';
+    themeButton?.setAttribute('aria-label', `Switch to ${dark ? 'light' : 'dark'} theme`);
+    document.querySelector('meta[name="theme-color"]').content = dark ? '#081e18' : '#f3f5ec';
   };
-  function animateHeroDepth() {
-    pointerFrame = 0;
-    if (reducedMotion.matches || document.hidden || !heroVisible) {
-      pointerCurrent = { x: 0, y: 0 };
-    } else {
-      pointerCurrent.x += (pointerTarget.x - pointerCurrent.x) * .12;
-      pointerCurrent.y += (pointerTarget.y - pointerCurrent.y) * .12;
-    }
-    const { x, y } = pointerCurrent;
-    heroTraces.style.transform = `translate3d(${(x * 16).toFixed(2)}px, ${(y * 12).toFixed(2)}px, 0)`;
-    heroBeats.style.transform = `translate3d(${(x * -9).toFixed(2)}px, ${(y * -5).toFixed(2)}px, 0)`;
-    heroGlow.style.transform = `translate3d(${(x * 26).toFixed(2)}px, ${(y * 18).toFixed(2)}px, 0)`;
-    if (Math.abs(pointerTarget.x - x) > .003 || Math.abs(pointerTarget.y - y) > .003) {
-      pointerFrame = requestAnimationFrame(animateHeroDepth);
-    }
-  }
-  hero.addEventListener('pointermove', event => {
-    if (!finePointer.matches || reducedMotion.matches || !heroVisible || document.hidden) return;
-    const rect = hero.getBoundingClientRect();
-    pointerTarget = {
-      x: Math.max(-1, Math.min(1, (event.clientX - rect.left) / rect.width * 2 - 1)),
-      y: Math.max(-1, Math.min(1, (event.clientY - rect.top) / rect.height * 2 - 1))
-    };
-    if (!pointerFrame) pointerFrame = requestAnimationFrame(animateHeroDepth);
-  }, { passive: true });
-  hero.addEventListener('pointerleave', resetHeroDepth);
-  reducedMotion.addEventListener('change', () => { resetHeroDepth(); syncTravel(); });
-  finePointer.addEventListener('change', resetHeroDepth);
-  document.addEventListener('visibilitychange', () => { resetHeroDepth(); syncTravel(); });
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(([entry]) => {
-      heroVisible = entry.isIntersecting;
-      if (!heroVisible) resetHeroDepth();
-      syncTravel();
-    }).observe(hero);
-  }
-  syncTravel();
-
-  const storedTheme = (() => {
-    try { return localStorage.getItem('pl-theme'); } catch { return null; }
-  })();
-  root.dataset.theme = storedTheme === 'light' ? 'light' : 'dark';
-  const updateThemeLabel = () => {
-    const next = root.dataset.theme === 'dark' ? 'light' : 'dark';
-    themeButton.setAttribute('aria-label', `Switch to ${next} theme`);
-    themeButton.title = `Switch to ${next} theme`;
-    document.querySelector('meta[name="theme-color"]').content = root.dataset.theme === 'dark' ? '#050d0b' : '#f2f8f4';
-  };
-  updateThemeLabel();
-  themeButton.addEventListener('click', () => {
-    root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark';
+  updateTheme();
+  themeButton?.addEventListener('click', () => {
+    root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
     try { localStorage.setItem('pl-theme', root.dataset.theme); } catch {}
-    updateThemeLabel();
+    updateTheme();
   });
-
   function closeMenu(returnFocus = false) {
+    if (!menuButton) return;
     menuButton.setAttribute('aria-expanded', 'false');
-    menuButton.setAttribute('aria-label', 'Open navigation');
+    menuButton.setAttribute('aria-label', 'Open menu');
     mobileNav.hidden = true;
     if (returnFocus) menuButton.focus();
   }
-  menuButton.addEventListener('click', () => {
+  menuButton?.addEventListener('click', () => {
     const open = menuButton.getAttribute('aria-expanded') !== 'true';
     menuButton.setAttribute('aria-expanded', String(open));
-    menuButton.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+    menuButton.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
     mobileNav.hidden = !open;
     if (open) mobileNav.querySelector('a').focus();
   });
-  mobileNav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => closeMenu()));
+  mobileNav?.querySelectorAll('a').forEach(link => link.addEventListener('click', () => closeMenu()));
   document.addEventListener('keydown', event => {
-    if (event.key === 'Escape' && menuButton.getAttribute('aria-expanded') === 'true') closeMenu(true);
+    if (event.key === 'Escape' && menuButton?.getAttribute('aria-expanded') === 'true') closeMenu(true);
+    if (event.key === 'Tab' && menuButton?.getAttribute('aria-expanded') === 'true') {
+      const links = [...mobileNav.querySelectorAll('a')];
+      const first = links[0], last = links[links.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); menuButton.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); menuButton.focus(); }
+      else if (document.activeElement === menuButton) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
+    }
   });
-  window.matchMedia('(min-width: 801px)').addEventListener('change', event => {
-    if (event.matches) closeMenu();
-  });
-
-  const entries = [
-    { category: 'Petrol', amount: 411.75 },
-    { category: 'Groceries', amount: 89 },
-    { category: 'Education', amount: 99 },
-    { category: 'Groceries', amount: 114 },
-    { category: 'Petrol', amount: 300 }
-  ];
-  const categoryOrder = [0, 4, 1, 3, 2];
-  const visualField = document.getElementById('visual-field');
-  const bars = document.getElementById('bars');
-  const fieldLabels = document.querySelectorAll('#field-labels span');
-  const viewButtons = [...document.querySelectorAll('.view-button')];
-  const visualCaption = document.getElementById('visual-caption');
-  const visualDetail = document.getElementById('visual-detail');
-  let currentView = 'moments';
-  let barElements = [];
-  let hoveredBar = null;
-  let focusedBar = null;
-  let selectedBar = null;
-
-  function updateBarHighlight() {
-    const active = hoveredBar ?? focusedBar ?? selectedBar;
-    barElements.forEach((bar, index) => {
-      bar.dataset.active = String(index === active);
-      bar.dataset.dimmed = String(active !== null && index !== active);
-      bar.setAttribute('aria-pressed', String(index === selectedBar));
-    });
-    visualDetail.textContent = active === null
-      ? 'Hover, focus, or tap a bar to inspect an expense.'
-      : `Entry ${active + 1} of ${entries.length} · ${entries[active].category} · ₹${entries[active].amount.toFixed(2)} (sample)`;
-  }
-
-  entries.forEach((entry, index) => {
-    const bar = document.createElement('button');
-    bar.className = 'viz-bar';
-    bar.type = 'button';
-    bar.dataset.category = entry.category;
-    bar.style.setProperty('--bar-height', `${20 + entry.amount / 411.75 * 54}%`);
-    bar.setAttribute('aria-label', `Sample expense ${index + 1} of ${entries.length}: ${entry.category}, ₹${entry.amount.toFixed(2)}`);
-    const label = document.createElement('span');
-    label.setAttribute('aria-hidden', 'true');
-    label.innerHTML = `₹${entry.amount.toFixed(2)}<small>${entry.category}</small>`;
-    bar.appendChild(label);
-    bar.addEventListener('pointerenter', () => {
-      if (finePointer.matches) { hoveredBar = index; updateBarHighlight(); }
-    });
-    bar.addEventListener('pointerleave', () => {
-      if (hoveredBar === index) { hoveredBar = null; updateBarHighlight(); }
-    });
-    bar.addEventListener('focus', () => { focusedBar = index; updateBarHighlight(); });
-    bar.addEventListener('blur', () => {
-      if (focusedBar === index) { focusedBar = null; updateBarHighlight(); }
-    });
-    bar.addEventListener('click', () => {
-      selectedBar = selectedBar === index ? null : index;
-      updateBarHighlight();
-    });
-    bar.addEventListener('keydown', event => {
-      if (event.key === 'Escape') { selectedBar = null; bar.blur(); updateBarHighlight(); }
-    });
-    bars.appendChild(bar);
-    barElements.push(bar);
-  });
-  updateBarHighlight();
-
-  function placeBars() {
-    const width = bars.getBoundingClientRect().width;
-    if (!width) return;
-    const step = width / entries.length;
-    barElements.forEach((bar, index) => {
-      const slot = currentView === 'moments' ? index : categoryOrder.indexOf(index);
-      const barWidth = bar.getBoundingClientRect().width;
-      const x = step * slot + (step - barWidth) / 2;
-      bar.style.setProperty('--bar-x', `${Math.round(x)}px`);
-    });
-  }
-  function setView(view) {
-    if (view !== 'moments' && view !== 'categories') return;
-    currentView = view;
-    viewButtons.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.view === view)));
-    visualField.dataset.view = view;
-    const labels = view === 'moments' ? ['01', '02', '03', '04', '05'] : ['Petrol', 'Petrol', 'Groceries', 'Groceries', 'Education'];
-    fieldLabels.forEach((label, index) => { label.textContent = labels[index]; });
-    visualCaption.textContent = view === 'moments' ? 'Five separate moments, kept in order.' : 'The same entries, gathered by category.';
-    placeBars();
-  }
-  viewButtons.forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
-  const resizeObserver = new ResizeObserver(placeBars);
-  resizeObserver.observe(bars);
-  placeBars();
-
-  const storySteps = document.querySelectorAll('[data-story-view]');
-  if ('IntersectionObserver' in window) {
-    const storyObserver = new IntersectionObserver(entries => {
-      const visible = entries.filter(entry => entry.isIntersecting).sort((a, b) => b.intersectionRatio - a.intersectionRatio);
-      if (visible[0]) setView(visible[0].target.dataset.storyView);
-    }, { threshold: [.35, .55], rootMargin: '-15% 0px -15% 0px' });
-    storySteps.forEach(step => storyObserver.observe(step));
+  matchMedia('(min-width: 801px)').addEventListener('change', event => { if (event.matches) closeMenu(); });
+  const barsHost = document.getElementById('bars');
+  if (barsHost) {
+    const moments = [
+      {category:'Petrol',amount:411.75},{category:'Groceries',amount:89},
+      {category:'Education',amount:99},{category:'Groceries',amount:114},{category:'Petrol',amount:300}
+    ];
+    const grouped = new Map();
+    moments.forEach(entry => grouped.set(entry.category,(grouped.get(entry.category)||0)+entry.amount));
+    const categories = [...grouped].map(([category,amount])=>({category,amount}));
+    let currentView='moments', entries=moments, selected=null, focused=null, hovered=null;
+    const bars=document.getElementById('bars'), labels=document.getElementById('field-labels');
+    const caption=document.getElementById('visual-caption'), detail=document.getElementById('visual-detail');
+    const viewButtons=[...document.querySelectorAll('.view-button')];
+    let barElements=[];
+    const highlight=()=>{
+      const active=hovered??focused??selected;
+      barElements.forEach((bar,i)=>{
+        bar.dataset.active=String(i===active);bar.dataset.dimmed=String(active!==null&&i!==active);
+        bar.setAttribute('aria-pressed',String(i===selected));
+      });
+      detail.textContent=active===null?'Select a bar to inspect an expense.':`${entries[active].category} · ₹${entries[active].amount.toFixed(2)}${currentView==='categories'?' total':''} (sample)`;
+    };
+    const place=()=>{
+      const width=bars.getBoundingClientRect().width, step=width/entries.length;
+      barElements.forEach((bar,i)=>bar.style.setProperty('--bar-x',`${Math.round(step*i+(step-bar.getBoundingClientRect().width)/2)}px`));
+    };
+    function render(){
+      bars.replaceChildren();labels.replaceChildren();barElements=[];
+      const max=Math.max(...entries.map(entry=>entry.amount));
+      entries.forEach((entry,i)=>{
+        const bar=document.createElement('button');bar.type='button';bar.className='viz-bar';bar.dataset.category=entry.category;
+        bar.style.setProperty('--bar-height',`${20+entry.amount/max*54}%`);
+        bar.setAttribute('aria-label',`${currentView==='moments'?'Sample expense':'Sample category total'} ${i+1}: ${entry.category}, ₹${entry.amount.toFixed(2)}`);
+        const amount=document.createElement('span');amount.setAttribute('aria-hidden','true');amount.textContent=`₹${entry.amount.toFixed(2)}`;bar.append(amount);
+        bar.addEventListener('pointerenter',()=>{if(finePointer.matches){hovered=i;highlight();}});
+        bar.addEventListener('pointerleave',()=>{hovered=null;highlight();});
+        bar.addEventListener('focus',()=>{focused=i;highlight();});bar.addEventListener('blur',()=>{focused=null;highlight();});
+        bar.addEventListener('click',()=>{selected=selected===i?null:i;highlight();});
+        bar.addEventListener('keydown',event=>{if(event.key==='Escape'){selected=null;bar.blur();highlight();}});
+        bars.append(bar);barElements.push(bar);
+        const label=document.createElement('span');label.textContent=currentView==='moments'?String(i+1).padStart(2,'0'):entry.category;label.style.width=`${100/entries.length}%`;labels.append(label);
+      });
+      highlight();place();
+    }
+    viewButtons.forEach(button=>button.addEventListener('click',()=>{
+      currentView=button.dataset.view;entries=currentView==='moments'?moments:categories;
+      selected=focused=hovered=null;
+      viewButtons.forEach(b=>b.setAttribute('aria-pressed',String(b===button)));
+      caption.textContent=currentView==='moments'?'Five moments, in order.':'Three categories. The same total.';
+      render();
+    }));
+    render();
+    if('ResizeObserver' in window)new ResizeObserver(place).observe(bars);
+    else window.addEventListener('resize',place);
   }
 
   const syncButton = document.getElementById('sync-demo');
-  const syncScene = document.getElementById('control-scene');
-  const syncCaption = document.getElementById('sync-caption');
-  syncButton.addEventListener('click', () => {
+  syncButton?.addEventListener('click', () => {
     const synced = syncButton.getAttribute('aria-pressed') !== 'true';
     syncButton.setAttribute('aria-pressed', String(synced));
-    syncButton.firstChild.textContent = synced ? 'Return to local only ' : 'Show the optional sync ';
-    syncScene.dataset.synced = String(synced);
-    syncCaption.textContent = synced ? 'When you choose Sync, the Android app can send a copy to your Sheet.' : 'Nothing leaves the Android app in the background.';
+    syncButton.firstChild.textContent = synced ? 'Return to local only ' : 'Show optional sync ';
+    document.getElementById('control-scene').dataset.synced = String(synced);
+    document.getElementById('sync-caption').textContent = synced
+      ? 'Accounts, entries and people mirror to your Sheet. Split bills stay on this phone.'
+      : 'No scheduled background sync. Connected saves can attempt sync.';
+  });
+
+  // Website-only examples; no app storage, Sheet connection or real money is touched.
+  document.querySelectorAll('.money-study').forEach(study => {
+    const button = study.querySelector('.study-action');
+    const initialLabel = button.innerHTML;
+    const status = study.querySelector('[data-status]');
+    const initialStatus = status.textContent;
+    let active = false;
+    button.hidden = false;
+    button.addEventListener('click', () => {
+      active = !active;
+      study.dataset.active = String(active);
+      button.innerHTML = active ? 'Reset example <span aria-hidden="true">↶</span>' : initialLabel;
+      if (study.id === 'account-study') {
+        study.querySelector('[data-bank]').textContent = active ? '₹7,900' : '₹8,400';
+        study.querySelector('[data-cash]').textContent = active ? '₹2,100' : '₹1,600';
+        status.textContent = active ? '₹500 moved from bank to cash. Still ₹10,000. No new spending.' : initialStatus;
+      } else {
+        study.querySelector('[data-receive]').textContent = active ? '₹600' : '₹800';
+        status.textContent = active ? 'Aarav paid back ₹200. He owes ₹200; Meera owes ₹400.' : initialStatus;
+      }
+    });
   });
 
   const guideSection = document.querySelector('.guide-section');
@@ -228,34 +154,142 @@
   window.addEventListener('pageshow', () => {
     window.clearTimeout(guideOpenTimer);
     guideOpening = false;
-    delete guideSection.dataset.bookOpening;
+    if(guideSection) delete guideSection.dataset.bookOpening;
   });
 
-  if ('IntersectionObserver' in window && !reducedMotion.matches) {
-    const revealObserver = new IntersectionObserver(entries => {
-      entries.forEach(entry => {
-        if (!entry.isIntersecting) return;
-        entry.target.animate([
-          { clipPath: 'inset(0 0 25% 0)', transform: 'translateY(22px)' },
-          { clipPath: 'inset(0 0 0 0)', transform: 'translateY(0)' }
-        ], { duration: 750, easing: 'cubic-bezier(0.77, 0, 0.175, 1)' });
-        revealObserver.unobserve(entry.target);
-      });
-    }, { threshold: .22, rootMargin: '0px 0px -8% 0px' });
-    document.querySelectorAll('.reveal').forEach(element => revealObserver.observe(element));
-  }
 
-  let scrollScheduled = false;
-  function updateScrollProgress() {
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    const progress = max > 0 ? window.scrollY / max : 0;
-    root.style.setProperty('--scroll-progress', String(progress));
-    scrollScheduled = false;
+  // Keep the original trace depth and reveals on the shared Lenis/GSAP clock.
+  function onPage({alignInitialHash=false} = {}) {
+    if (!window.gsap || !window.ScrollTrigger) return () => {};
+    const { gsap, ScrollTrigger } = window;
+    gsap.registerPlugin(ScrollTrigger);
+    const media = gsap.matchMedia();
+    let lenis = null;
+    let disposed = false;
+    let heroVisible = true;
+    const art = document.querySelector('.hero-backdrop');
+    const traces=document.querySelector('.hero-traces'), beats=document.querySelector('.hero-beats'), glow=document.querySelector('.hero-glow');
+    const hero = document.querySelector('.hero');
+    const target = { x:0, y:0 }, pointer = { x:0, y:0 };
+    const move = event => {
+      if (!hero || !finePointer.matches || reducedMotion.matches) return;
+      const rect = hero.getBoundingClientRect();
+      target.x = (event.clientX - rect.left) / rect.width * 2 - 1;
+      target.y = (event.clientY - rect.top) / rect.height * 2 - 1;
+    };
+    const reset = () => { target.x = target.y = 0; };
+    hero?.addEventListener('pointermove', move, {passive:true});
+    hero?.addEventListener('pointerleave', reset);
+    const observer = art ? new IntersectionObserver(([entry]) => { heroVisible = entry.isIntersecting; travel(); }) : null;
+    if (art) observer.observe(art);
+    let travelPaused;
+    const travel=()=>{if(!traces)return;const paused=reducedMotion.matches||document.hidden||!heroVisible;if(paused===travelPaused)return;travelPaused=paused;if(paused)traces.pauseAnimations();else traces.unpauseAnimations();};
+    document.addEventListener('visibilitychange',travel);travel();
+    const draw = time => {
+      if (document.hidden) return;
+      travel();
+      lenis?.raf(time * 1000);
+      const max = root.scrollHeight - innerHeight;
+      root.style.setProperty('--scroll-progress', String(max > 0 ? scrollY / max : 0));
+      if (reducedMotion.matches) return;
+      if (art && heroVisible) {
+        pointer.x += (target.x - pointer.x) * .08;
+        pointer.y += (target.y - pointer.y) * .08;
+        if(traces) traces.style.transform=`translate3d(${pointer.x*16}px,${pointer.y*12}px,0)`;
+        if(beats) beats.style.transform=`translate3d(${pointer.x*-9}px,${pointer.y*-5}px,0)`;
+        if(glow) glow.style.transform=`translate3d(${pointer.x*26}px,${pointer.y*18}px,0)`;
+      }
+
+    };
+    gsap.ticker.lagSmoothing(0);
+    gsap.ticker.add(draw);
+    root.dataset.motion = 'off';
+    media.add('(prefers-reduced-motion: no-preference)', () => {
+      if (reducedMotion.matches) return;
+      root.dataset.motion = 'on';
+      if (window.Lenis) {
+        lenis = new Lenis({autoRaf:false, smoothWheel:true, syncTouch:false, lerp:.11, anchors:false, respectReducedMotion:true});
+        lenis.on('scroll', ScrollTrigger.update);
+        root.dataset.scrollEngine = 'lenis';
+      }
+      gsap.utils.toArray('.reveal').forEach(el=>gsap.from(el,{y:22,duration:.75,ease:'power3.out',clearProps:'transform',scrollTrigger:{trigger:el,start:'top 92%',once:true}}));
+      return () => {
+        lenis?.destroy(); lenis = null;
+        delete root.dataset.scrollEngine;
+        root.dataset.motion = 'off';
+        [traces,beats,glow].filter(Boolean).forEach(el=>el.style.removeProperty('transform'));
+        travel();
+      };
+    });
+    function anchor(event) {
+      const link = event.target.closest('a[href^="#"]');
+      if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const hash = link.getAttribute('href');
+      if (hash.length < 2) return;
+      const el = document.getElementById(decodeURIComponent(hash.slice(1)));
+      if (!el) return;
+      event.preventDefault();
+      const offset = document.querySelector('.site-header').offsetHeight + 20;
+      const focusTarget = () => {
+        const hadTabIndex = el.hasAttribute('tabindex');
+        if (!hadTabIndex) { el.tabIndex = -1; el.addEventListener('blur', () => el.removeAttribute('tabindex'), {once:true}); }
+        el.focus({preventScroll:true});
+      };
+      // Keep hashes native so Back/Forward can restore the reader's place.
+      history.pushState(null,'',hash);
+      if (lenis) lenis.scrollTo(scrollY + el.getBoundingClientRect().top - offset,{duration:.85,onComplete:focusTarget});
+      else { el.scrollIntoView({behavior:'instant',block:'start'}); focusTarget(); }
+    }
+    document.addEventListener('click',anchor);
+    const interruptKeyboard = event => {
+      if (!lenis || event.target.closest('input,textarea,select,[contenteditable=true]')) return;
+      if (['ArrowUp','ArrowDown','PageUp','PageDown','Home','End',' '].includes(event.key)) {
+        lenis.stop(); lenis.start();
+      }
+    };
+    document.addEventListener('keydown',interruptKeyboard);
+    const resize = () => { lenis?.resize(); ScrollTrigger.refresh(); };
+    document.querySelectorAll('details').forEach(el => el.addEventListener('toggle',resize));
+    let restoreCall;
+    const restore = event => {
+      if (disposed) return;
+      const keepPosition = event?.type === 'pageshow' && event.persisted;
+      restoreCall?.kill();
+      restoreCall = gsap.delayedCall(.05, () => {
+        resize();
+        let target = null;
+        try { target = document.getElementById(decodeURIComponent(location.hash.slice(1))); } catch {}
+        const offset = document.querySelector('.site-header').offsetHeight + 20;
+        // Numeric document coordinates avoid stale Lenis state after native fragment/history jumps.
+        if (target && lenis && !keepPosition) lenis.scrollTo(scrollY + target.getBoundingClientRect().top - offset,{immediate:true,force:true});
+        else if (target && !keepPosition) target.scrollIntoView({behavior:'instant',block:'start'});
+        else lenis?.scrollTo(scrollY,{immediate:true,force:true});
+      });
+    };
+    (document.fonts?.ready || Promise.resolve()).then(() => {if (!disposed) alignInitialHash ? restore() : resize();});
+    window.addEventListener('load',restore);
+    window.addEventListener('pageshow',restore);
+    window.addEventListener('popstate',restore);
+    return () => {
+      disposed = true; document.removeEventListener('visibilitychange',travel); media.revert(); gsap.ticker.remove(draw); observer?.disconnect();
+      hero?.removeEventListener('pointermove',move); hero?.removeEventListener('pointerleave',reset);
+      document.removeEventListener('click',anchor); document.removeEventListener('keydown',interruptKeyboard); restoreCall?.kill(); window.removeEventListener('popstate',restore); window.removeEventListener('load',restore); window.removeEventListener('pageshow',restore);
+      document.querySelectorAll('details').forEach(el => el.removeEventListener('toggle',resize));
+    };
   }
-  window.addEventListener('scroll', () => {
-    if (scrollScheduled) return;
-    scrollScheduled = true;
-    requestAnimationFrame(updateScrollProgress);
-  }, { passive: true });
-  updateScrollProgress();
+  let cleanup = onPage({alignInitialHash:true});
+  const motionButton = document.getElementById('motion-toggle');
+  const updateMotionLabel = () => {
+    if (!motionButton) return;
+    motionButton.textContent = reducedMotion.matches ? 'Motion: off' : 'Motion: on';
+    motionButton.setAttribute('aria-label', reducedMotion.matches ? 'Motion: off. Turn motion on' : 'Motion: on. Turn motion off');
+  };
+  updateMotionLabel();
+  deviceMotion.addEventListener('change',updateMotionLabel);
+  motionButton?.addEventListener('click', () => {
+    root.dataset.motionPreference = root.dataset.motionPreference === 'off' ? 'on' : 'off';
+    try { localStorage.setItem('pl-motion',root.dataset.motionPreference); } catch {}
+    cleanup(); cleanup = onPage(); updateMotionLabel();
+  });
+  window.addEventListener('pagehide',event => { if (!event.persisted) cleanup(); });
 })();
