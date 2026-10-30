@@ -12,6 +12,7 @@ import json
 import re
 import shutil
 import sys
+from site_metadata import metadata_head
 
 from PIL import Image
 from reportlab.pdfgen import canvas
@@ -69,6 +70,7 @@ def page(filename, title, description, body):
     h = re.sub(r'(<link rel="canonical" href=")[^"]*', lambda m: m[1]+url, h)
     for prop, value in [('og:title', 'Pocket Ledger | '+title), ('og:description', description), ('og:url', url)]:
         h = re.sub(r'(<meta property="'+prop+r'" content=")[^"]*', lambda m: m[1]+esc(value), h)
+    h = metadata_head(h, filename, title)
     h += '<link rel="stylesheet" href="guide.css">'
     he = header if filename == 'guide.html' else header.replace(' aria-current="page"', '')
     doc = '<!doctype html>\n<html lang="en" data-theme="dark"><head>'+h+'</head><body><a class="skip-link" href="#main">Skip to content</a>'+he+'<main id="main" tabindex="-1" class="handbook">'+body+'</main>'+footer+'</body></html>\n'

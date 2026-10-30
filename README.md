@@ -1,6 +1,18 @@
-# Pocket Ledger
+# Pocket Ledger — Offline Android Expense Tracker
 
-A local-first personal ledger for **Android**, with optional sync to a Google Sheet you own. Track accounts, income, spending, transfers and money owed; calculate an outing’s split in a separate bill-splitting tool. **iOS** has its own, simpler Apple Shortcut workflow for recording expenses in Sheets.
+**Pocket Ledger by Techyeye98** is an offline expense tracker and personal finance ledger for **Android**, with optional **Google Sheets sync** to a Sheet you own. Track bank, cash and card accounts, income, expenses, transfers and money owed. A separate itemized bill splitter handles shared bills and partial repayments. **iPhone** uses its own, simpler Apple Shortcut for recording expenses in Google Sheets.
+
+[Website](https://techyeye98.github.io/Pocket-Ledger/) · [Download Android APK](https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger.apk) · [Illustrated user guide](https://techyeye98.github.io/Pocket-Ledger/guide.html) · [iPhone Shortcut & templates](https://techyeye98.github.io/Pocket-Ledger/download.html) · [Data & backups](https://techyeye98.github.io/Pocket-Ledger/your-data.html)
+
+## Why use this Pocket Ledger?
+
+- **Offline first:** record Android expenses without a Pocket Ledger account or Google Sheet.
+- **Your own spreadsheet:** optionally sync your financial ledger to a Google Sheet in your Drive.
+- **Shared money stays clear:** distinguish your spending from friends' shares, loans and linked repayments.
+- **Itemized bill splitting:** divide items, tax, discounts and payments; import a receipt image or scanned PDF for on-device English text recognition and review.
+- **Quick Android entry:** use the home-screen widget or Quick Settings tile, then find transactions in Activity.
+
+This is the [Techyeye98/Pocket-Ledger](https://github.com/Techyeye98/Pocket-Ledger) project. Use the links above to identify this app among other products with the same name. The Android download is a **debug-signed preview**, not a Play Store release. Standalone split bills stay on the current phone and are excluded from ledger backups and Sheets sync.
 
 ## Current version
 
@@ -13,7 +25,7 @@ This README describes the current source and website downloads. The illustrated 
 | Android | Native offline ledger, accounts, people dues, widgets and standalone bill splitting | [Pocket Ledger — Android](https://docs.google.com/spreadsheets/d/1rxBf4afldt5WeRTu_Lxue1OeDSCDepbNpJz45OeTdAA/copy) |
 | iOS | Apple Shortcut that sends expenses to its own Sheet | [Pocket Ledger — iOS](https://docs.google.com/spreadsheets/d/16j8RzujL-Z_zTnZ8ST50UopyROpsU-yM21yhWZf2IxY/copy) |
 
-Start with the local [website](distribution/index.html), [Android APK](distribution/downloads/Pocket-Ledger.apk), or [iOS Shortcut](distribution/downloads/Pocket-Ledger-iPhone.shortcut). Use the matching platform’s Sheet and script. Android-only functionality below does not apply to the iOS Shortcut.
+Start with the [website](https://techyeye98.github.io/Pocket-Ledger/), [Android APK](https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger.apk), or [iOS Shortcut](https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger-iPhone.shortcut). Use the matching platform’s Sheet and script. Android-only functionality below does not apply to the iOS Shortcut.
 
 ## What the Android app does
 
@@ -124,9 +136,9 @@ The Web App URL, verified connection, sync timestamps and installation identifie
 
 The native account ledger, offline Room storage, income/transfers, people settlements, widgets and standalone bill splitter described above belong to Android. Do not connect the iOS Shortcut to Android’s rich-ledger backend or use one platform’s setup guide as the other’s.
 
-## Local website and guide status
+## Website and illustrated guides
 
-`distribution/` is the current website package. The restored neon-trace design uses locally hosted Lenis, GSAP and variable fonts. The homepage includes spending and feature highlights, a shared-payment example, a short data summary and direct Android/iOS downloads. Separate Features, Your data, Download and Guide pages hold detailed explanations, setup and FAQs. The original animated guide-book opens the current HTML guide. A Motion control complements device reduced-motion preferences. See [design direction](DESIGN.md). It now describes the full Android ledger, separate iOS workflow, matching Sheet/script links, sync behavior and backup limits. Its APK and Android script are staged locally from the current build/source. No Git push or website deployment is part of this update.
+`distribution/` is the current [GitHub Pages website](https://techyeye98.github.io/Pocket-Ledger/) package. The restored neon-trace design uses locally hosted Lenis, GSAP and variable fonts. The homepage includes spending and feature highlights, a shared-payment example, a short data summary and direct Android/iOS downloads. Separate Features, Your data, Download and Guide pages hold detailed explanations, setup and FAQs. The original animated guide-book opens the current HTML guide. A Motion control complements device reduced-motion preferences. See [design direction](DESIGN.md). The site describes the full Android ledger, separate iOS workflow, matching Sheet/script links, sync behavior and backup limits. The GitHub Pages workflow publishes `distribution/` when `main` is updated.
 
 The current [illustrated Android PDF](distribution/guides/Pocket-Ledger-Guide-2026-10.pdf) covers accounts, entries, Lena / Dena, item-level bill splitting, payments, OCR review, Sheets and backups. The [guide hub](distribution/guide.html) links nine task chapters using real screenshots with demo data and editable native callouts. The earlier expense/widget PDF remains an archive. The iOS guide/Shortcut remain unchanged. `website/experiments/v6/` is an older design experiment, not the current publication package.
 
