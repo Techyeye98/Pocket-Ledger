@@ -2,7 +2,17 @@
 
 **Pocket Ledger by Techyeye98** is an offline expense tracker and personal finance ledger for **Android**, with optional **Google Sheets sync** to a Sheet you own. Track bank, cash and card accounts, income, expenses, transfers and money owed. A separate itemized bill splitter handles shared bills and partial repayments. **iPhone** uses its own, simpler Apple Shortcut for recording expenses in Google Sheets.
 
-[Website](https://techyeye98.github.io/Pocket-Ledger/) · [Download Android APK](https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger.apk) · [Illustrated user guide](https://techyeye98.github.io/Pocket-Ledger/guide.html) · [iPhone Shortcut & templates](https://techyeye98.github.io/Pocket-Ledger/download.html) · [Data & backups](https://techyeye98.github.io/Pocket-Ledger/your-data.html)
+<p align="center">
+  <a href="https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger.apk"><img src="https://img.shields.io/badge/Download_APK-Android-20883D?style=for-the-badge&amp;logo=android&amp;logoColor=white" alt="Download Pocket Ledger APK for Android"></a>
+  <a href="https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger-iPhone.shortcut"><img src="https://img.shields.io/badge/Get_Shortcut-iPhone-147EFB?style=for-the-badge&amp;logo=apple&amp;logoColor=white" alt="Get Pocket Ledger Shortcut for iPhone"></a>
+</p>
+<p align="center">
+  <a href="https://techyeye98.github.io/Pocket-Ledger/"><img src="https://img.shields.io/badge/Website-Pocket_Ledger-0B5744?style=for-the-badge" alt="Visit the Pocket Ledger website"></a>
+  <a href="https://techyeye98.github.io/Pocket-Ledger/guide.html"><img src="https://img.shields.io/badge/User_Guide-9_Topics-0B5744?style=for-the-badge" alt="Read the illustrated Pocket Ledger user guide"></a>
+  <a href="https://techyeye98.github.io/Pocket-Ledger/guides/Pocket-Ledger-Guide-2026-10.pdf"><img src="https://img.shields.io/badge/Android_Guide-PDF-0B5744?style=for-the-badge" alt="Open the illustrated Android PDF guide"></a>
+  <a href="https://techyeye98.github.io/Pocket-Ledger/your-data.html"><img src="https://img.shields.io/badge/Your_Data-Backups-0B5744?style=for-the-badge" alt="Understand Pocket Ledger data and backups"></a>
+</p>
+<p align="center"><strong><a href="https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger.apk">Download Android APK directly</a></strong> · <a href="https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger-iPhone.shortcut">Get iPhone Shortcut directly</a><br>Android 8.0+ · Debug-signed preview · iPhone uses a separate, simpler Shortcut</p>
 
 ## Why use this Pocket Ledger?
 
@@ -22,8 +32,8 @@ This README describes the current source and website downloads. The illustrated 
 
 | Platform | What you get | Sheet template |
 | --- | --- | --- |
-| Android | Native offline ledger, accounts, people dues, widgets and standalone bill splitting | [Pocket Ledger — Android](https://docs.google.com/spreadsheets/d/1rxBf4afldt5WeRTu_Lxue1OeDSCDepbNpJz45OeTdAA/copy) |
-| iOS | Apple Shortcut that sends expenses to its own Sheet | [Pocket Ledger — iOS](https://docs.google.com/spreadsheets/d/16j8RzujL-Z_zTnZ8ST50UopyROpsU-yM21yhWZf2IxY/copy) |
+| Android | Native offline ledger, accounts, people dues, widgets and standalone bill splitting | [![Copy Android Sheet](https://img.shields.io/badge/Copy_Sheet-Android-20883D?style=for-the-badge&logo=googlesheets&logoColor=white)](https://docs.google.com/spreadsheets/d/1rxBf4afldt5WeRTu_Lxue1OeDSCDepbNpJz45OeTdAA/copy) |
+| iOS | Apple Shortcut that sends expenses to its own Sheet | [![Copy iPhone Sheet](https://img.shields.io/badge/Copy_Sheet-iPhone-147EFB?style=for-the-badge&logo=googlesheets&logoColor=white)](https://docs.google.com/spreadsheets/d/16j8RzujL-Z_zTnZ8ST50UopyROpsU-yM21yhWZf2IxY/copy) |
 
 Start with the [website](https://techyeye98.github.io/Pocket-Ledger/), [Android APK](https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger.apk), or [iOS Shortcut](https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger-iPhone.shortcut). Use the matching platform’s Sheet and script. Android-only functionality below does not apply to the iOS Shortcut.
 
@@ -92,6 +102,8 @@ For migration from the older app, export a JSON backup, keep that app installed,
 
 Skip this if you only want offline use.
 
+[![Android Apps Script](https://img.shields.io/badge/Android-Apps_Script-20883D?style=for-the-badge&logo=googleappsscript&logoColor=white)](https://techyeye98.github.io/Pocket-Ledger/apps-script/Pocket-Ledger-Apps-Script.gs.txt)
+
 1. [Copy Pocket Ledger — Android](https://docs.google.com/spreadsheets/d/1rxBf4afldt5WeRTu_Lxue1OeDSCDepbNpJz45OeTdAA/copy) into your own Drive. The copy link is a template, not the app’s sync URL.
 2. In your Sheet’s desktop browser choose **Extensions → Apps Script**. Save the full [Android script](V6/Backend/AppsScript.gs), also included as [a website download](distribution/apps-script/Pocket-Ledger-Apps-Script.gs.txt).
 3. Deploy as a **Web app**, executing as yourself, with access set to **Anyone** for the chosen private-URL workflow. Complete Google’s authorization. For an existing deployment use Manage deployments → Edit → New version → Deploy; retain its existing `/exec` URL.
@@ -131,6 +143,9 @@ If the Sheet is empty but phone balances are correct, use **Sync Now**, then **R
 The Web App URL, verified connection, sync timestamps and installation identifier are device-specific. Split bills and saved split friends are excluded. **Export as Text** is a readable copy, not a restorable backup. Keep financial backup files private and check an import before deleting the original.
 
 ## iOS: separate Shortcut workflow
+
+[![iPhone setup PDF](https://img.shields.io/badge/iPhone-Setup_PDF-147EFB?style=for-the-badge&logo=apple&logoColor=white)](https://techyeye98.github.io/Pocket-Ledger/guides/iPhone/iPhone-Shortcut-Setup-Guide.pdf)
+[![iOS Apps Script](https://img.shields.io/badge/iOS-Apps_Script-147EFB?style=for-the-badge&logo=googleappsscript&logoColor=white)](https://techyeye98.github.io/Pocket-Ledger/apps-script/Pocket-Ledger-iOS.gs.txt)
 
 [Copy Pocket Ledger — iOS](https://docs.google.com/spreadsheets/d/16j8RzujL-Z_zTnZ8ST50UopyROpsU-yM21yhWZf2IxY/copy), use the [supplied Shortcut](distribution/downloads/Pocket-Ledger-iPhone.shortcut), and follow the existing [iOS setup PDF](distribution/guides/iPhone/iPhone-Shortcut-Setup-Guide.pdf). The matching [iOS script](distribution/apps-script/Pocket-Ledger-iOS.gs.txt) retains the original expense-to-Sheet workflow.
 

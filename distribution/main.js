@@ -211,8 +211,29 @@
         lenis.on('scroll', ScrollTrigger.update);
         root.dataset.scrollEngine = 'lenis';
       }
-      gsap.utils.toArray('.reveal').forEach(el=>gsap.from(el,{y:22,duration:.75,ease:'power3.out',clearProps:'transform',scrollTrigger:{trigger:el,start:'top 92%',once:true}}));
+      const revealTargets = gsap.utils.toArray([
+        '.reveal', '.statement > *', '.ledger-heading', '.product-preview > *',
+        '.ledger-features > article', '.shared-example', '.day-visual', '.story-step',
+        '.home-control > *', '.start-intro', '.route', '.section-more',
+        '.control-scene', '.data-notes > article', '.download-help', '.guide-book-link',
+        '.manual-topics > h2', '.manual-topic-grid > *', '.manual-first > *',
+        '.manual-shortcuts > *', '.manual-resources > *', '.manual-lesson > h2',
+        '.manual-figure', '.manual-faq > h2', '.manual-pagination'
+      ].join(','));
+      const reveals = revealTargets
+        .filter(el => !revealTargets.some(parent => parent !== el && parent.contains(el)))
+        // Keep the initial viewport and restored/linked reading position immediately readable.
+        .filter(el => el.getBoundingClientRect().top >= innerHeight * .9)
+        .map(el => ({el, tween: gsap.from(el, {
+          y:24, opacity:0, duration:.6, ease:'power3.out', clearProps:'transform,opacity',
+          scrollTrigger:{trigger:el, start:'top 90%', once:true}
+        })}));
+      const revealFocused = event => reveals.forEach(({el,tween}) => {
+        if (el.contains(event.target)) tween.progress(1);
+      });
+      document.addEventListener('focusin',revealFocused);
       return () => {
+        document.removeEventListener('focusin',revealFocused);
         lenis?.destroy(); lenis = null;
         delete root.dataset.scrollEngine;
         root.dataset.motion = 'off';
