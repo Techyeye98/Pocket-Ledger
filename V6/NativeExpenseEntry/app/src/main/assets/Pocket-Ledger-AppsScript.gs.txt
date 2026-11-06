@@ -432,27 +432,15 @@ function generateLegacyId(date, time, amount, remarks, rowIdx) {
   return hex.substring(0,8) + "-" + hex.substring(8,12) + "-4" + hex.substring(13,16) + "-a" + hex.substring(17,20) + "-" + hex.substring(20,32);
 }
 
-function parseEpoch(dateStr, timeStr) {
-  try {
-    if (!dateStr) return Date.now();
-    var parts = dateStr.split("-");
-    if (parts.length === 3) {
-      var d = parseInt(parts[0], 10);
-      var m = parseInt(parts[1], 10) - 1;
-      var y = parseInt(parts[2], 10);
-      var h = 0, min = 0, s = 0;
-      if (timeStr) {
-        var tParts = timeStr.split(":");
-        if (tParts.length >= 2) {
-          h = parseInt(tParts[0], 10);
-          min = parseInt(tParts[1], 10);
-          if (tParts.length >= 3) s = parseInt(tParts[2], 10);
-        }
-      }
-      return new Date(y, m, d, h, min, s).getTime();
-    }
-  } catch (ignored) {}
-  return Date.now();
+function parseEpoch(dateStr,timeStr) {
+  var text=String(dateStr||'').trim(),match=text.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/),y,m,d;
+  if(match){d=+match[1];m=+match[2];y=+match[3];}
+  else {match=text.match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!match)throw new Error('Invalid entry date');y=+match[1];m=+match[2];d=+match[3];}
+  var time=String(timeStr||'00:00:00').match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if(!time)throw new Error('Invalid entry time');
+  var h=+time[1],min=+time[2],sec=+(time[3]||0),date=new Date(y,m-1,d,h,min,sec);
+  if(date.getFullYear()!==y||date.getMonth()!==m-1||date.getDate()!==d||date.getHours()!==h||date.getMinutes()!==min||date.getSeconds()!==sec)throw new Error('Invalid entry date/time');
+  return date.getTime();
 }
 
 function jsonOutput(obj) {
@@ -693,8 +681,28 @@ function ledgerRead(){
   var count=Object.keys(LEDGER_KEYS).reduce(function(n,k){return n+result[k].length;},0);
   ledgerCheck(count===Number(meta.getRange(1,2).getValue()),'Incomplete ledger snapshot');ledgerValidate(result);return result;
 }
+// Compare only shared wire fields; transport status and the legacy decimal amount are not revisions.
+var LEDGER_FIELDS={
+  accounts:'accountId name type openingMinor openingAt position archived deleted',
+  paymentRoutes:'routeId label accountId deleted',
+  people:'personId name archived deleted',
+  transactions:'transactionId amountMinor personalMinor kind effectiveAt accountId destinationId routeId personId originalId shares category paymentMode remarks spendingType date time deviceName createdAt deleted'
+};
+function ledgerContent(group,x){
+  function stable(v){if(v&&typeof v==='object'&&!Array.isArray(v)){var out=Object.create(null);Object.keys(v).sort().forEach(function(k){out[k]=stable(v[k]);});return out;}return v;}
+  return JSON.stringify(LEDGER_FIELDS[group].split(' ').map(function(k){
+    var v=x[k];if(v===undefined)v=['archived','deleted'].indexOf(k)>=0?false:k==='position'?0:k==='spendingType'?'UNTAGGED':'';return stable(v);
+  }));
+}
 function ledgerMerge(local,remote){
-  var result=ledgerEmpty();Object.keys(LEDGER_KEYS).forEach(function(group){var map=Object.create(null),key=LEDGER_KEYS[group];local[group].forEach(function(x){map[x[key]]=x;});remote[group].forEach(function(x){var old=map[x[key]];if(!old||x.updatedAt>=old.updatedAt)map[x[key]]=x;});result[group]=Object.keys(map).map(function(id){return map[id];});});ledgerValidate(result);return result;
+  var result=ledgerEmpty();Object.keys(LEDGER_KEYS).forEach(function(group){
+    var map=Object.create(null),key=LEDGER_KEYS[group];local[group].forEach(function(x){map[x[key]]=x;});
+    remote[group].forEach(function(x){var old=map[x[key]];
+      ledgerCheck(!old||x.updatedAt!==old.updatedAt||ledgerContent(group,x)===ledgerContent(group,old),'Sync conflict for '+x[key]+': different versions have the same timestamp. Edit and save this record in the app, then sync again.');
+      ledgerCheck(!old||old.updatedAt<=Date.now()+300000||x.updatedAt>=old.updatedAt||ledgerContent(group,x)===ledgerContent(group,old),'Clock conflict for '+x[key]+': the synced version is dated in the future. Restore the Sheet version before editing it again.');
+      if(!old||x.updatedAt>old.updatedAt)map[x[key]]=x;
+    });result[group]=Object.keys(map).map(function(id){return map[id];});
+  });ledgerValidate(result);return result;
 }
 function ledgerValidate(l){
   ledgerCheck(l&&l.ledgerSchema===1,'Unsupported ledger schema');var maps={},max=9000000000000000;
@@ -741,12 +749,13 @@ function ledgerEndpoint(p){
   var lock=LockService.getScriptLock();lock.waitLock(30000);
   try{
     ledgerCheck(p.ledgerSchema===1,'Update app for ledger sync');
-    if(p.action==='LEDGER_FETCH')return jsonOutput({status:'success',ledgerSchema:1,ledger:ledgerRead()});
+    if(p.action==='LEDGER_FETCH'){var fetched=ledgerRead();return jsonOutput({status:'success',ledgerSchema:1,dashboardWarning:fetched._canvasWarning||'',ledger:fetched});}
     if(p.action==='DASHBOARD_REFRESH'){ledgerRefreshReports(ledgerRead());return jsonOutput({status:'success',ledgerSchema:1,dashboardSchema:1});}
     ledgerCheck(typeof p.requestId==='string'&&p.requestId,'Missing request ID');ledgerValidate(p.ledger);
-    var merged=ledgerMerge(ledgerRead(),p.ledger);
+    var current=ledgerRead();
+    var merged=ledgerMerge(current,p.ledger);
     plWriteSnapshot(merged);
-    var reportWarning='';try{ledgerRefreshReports(merged);}catch(reportError){reportWarning=String(reportError.message||reportError);}
+    var reportWarning=current._canvasWarning||'';try{ledgerRefreshReports(merged);}catch(reportError){reportWarning+=(reportWarning?' ':'')+String(reportError.message||reportError);}
     return jsonOutput({status:'success',ledgerSchema:1,dashboardSchema:1,dashboardWarning:reportWarning,requestId:p.requestId,ledger:merged});
   }catch(e){return errorResult(String(e.message||e));}finally{lock.releaseLock();}
 }
@@ -808,7 +817,9 @@ function plWriteSnapshot(ledger){
   s.getRange(2,pc,1,2).setValues([[slot,rows.length]]);SpreadsheetApp.flush();
 }
 function plLiteral(value){return typeof value==='string'&&/^[=+@-]/.test(value)?"'"+value:value;}
-function plReadCanvasEdits(ledger){
+function plReadCanvasEdits(committed){
+  var ledger=JSON.parse(JSON.stringify(committed));
+  try{
   var layout=plHeaders(false),h=layout.headers,rows=layout.sheet.getDataRange().getValues(),byId=Object.create(null);
   ledger.transactions.forEach(function(t){byId[t.transactionId]=t;});
   function cell(row,name){var c=h.indexOf(name);return c<0?'':row[c];}
@@ -821,12 +832,14 @@ function plReadCanvasEdits(ledger){
     t.kind=kind;t.amountMinor=Math.round(Number(row[4])*100);
     var personal=cell(row,'Personal amount');t.personalMinor=personal!==''?Math.round(Number(personal)*100):kind==='EXPENSE'||kind==='FRIEND_PAID'?t.amountMinor:0;
     t.accountId=String(cell(row,'Account ID')||t.accountId||'');t.destinationId=String(cell(row,'Destination ID')||t.destinationId||'');t.personId=String(cell(row,'Person ID')||t.personId||'');t.originalId=String(cell(row,'Original entry ID')||t.originalId||'');
-    t.date=formatDateCell(row[0]);t.time=formatTimeCell(row[2]);t.effectiveAt=old&&t.date===old.date&&t.time===old.time?old.effectiveAt:parseEpoch(t.date,t.time);t.amount=t.amountMinor/100;
-    t.category=String(row[3]||'');t.paymentMode=String(row[5]||'');t.remarks=String(row[6]||'');t.deviceName=String(row[7]||'');t.createdAt=old?old.createdAt:Number(row[9])||updated;t.updatedAt=updated;
+    t.date=formatDateCell(row[0]);if(/^\d{2}\/\d{2}\/\d{4}$/.test(t.date))t.date=t.date.replace(/\//g,'-');t.time=formatTimeCell(row[2]);t.effectiveAt=old&&t.date===old.date&&t.time===old.time?old.effectiveAt:parseEpoch(t.date,t.time);t.amount=t.amountMinor/100;
+    t.category=String(row[3]||'');t.paymentMode=String(row[5]||'');
+    ledgerCheck(!old||(!old.accountId&&!old.routeId)||t.paymentMode===old.paymentMode,'Change the payment account in the Pocket Ledger app');t.remarks=String(row[6]||'');t.deviceName=String(row[7]||'');t.createdAt=old?old.createdAt:Number(row[9])||updated;t.updatedAt=updated;
     t.deleted=row[11]===true||String(row[11]).toLowerCase()==='true';t.spendingType=normalizeSpendingType(cell(row,'Spending Type'));
     if(!old)ledger.transactions.push(t);else ledger.transactions[ledger.transactions.indexOf(old)]=t;
     byId[id]=t;
   });ledgerValidate(ledger);return ledger;
+  }catch(e){committed._canvasWarning='Dashboard edits were not applied: '+String(e.message||e)+'. Correct the entry in the app and sync again.';return committed;}
 }
 function ledgerRefreshReports(ledger){
   var layout=plHeaders(true),s=layout.sheet,h=layout.headers,data=s.getDataRange().getValues(),model=ledgerReportModel(ledger,Date.now()),byId=Object.create(null),accounts=Object.create(null),people=Object.create(null),desired=[];

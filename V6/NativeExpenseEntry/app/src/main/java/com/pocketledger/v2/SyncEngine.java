@@ -72,7 +72,7 @@ final class SyncEngine {
                 for(TransactionEntity sent:snapshot[0].transactions) {
                     TransactionEntity current=db.transactionDao().findById(sent.transactionId);
                     TransactionEntity remote=confirmed.transaction(sent.transactionId);
-                    if(current!=null&&remote!=null&&current.updatedAt==sent.updatedAt&&remote.updatedAt==sent.updatedAt)db.transactionDao().markSynced(sent.transactionId);
+                    if(current!=null&&remote!=null&&current.updatedAt==sent.updatedAt&&remote.updatedAt==sent.updatedAt&&LedgerJson.sameContent(current,sent)&&LedgerJson.sameContent(remote,sent))db.transactionDao().markSynced(sent.transactionId);
                 }
             });
             return new SyncResult(snapshot[0].transactions.size()+snapshot[0].accounts.size()+snapshot[0].routes.size()+snapshot[0].people.size(),0,reportWarning[0]);

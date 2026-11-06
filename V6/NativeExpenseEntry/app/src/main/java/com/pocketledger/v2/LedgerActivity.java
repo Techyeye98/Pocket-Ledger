@@ -214,7 +214,7 @@ public final class LedgerActivity extends Activity {
         action("Add payment alias (UPI / debit card)",()->alias(a));
         action("Balance adjustment",()->goEntry("ADJUSTMENT","","",a.accountId));
         boolean used=false;for(TransactionEntity t:ledger.transactions)if(a.accountId.equals(t.accountId)||a.accountId.equals(t.destinationId))used=true;
-        if(!used)action("Delete unused account",()->confirm("Delete unused account?",a.name,()->work(()->{AppDatabase db=AppDatabase.get(this);db.runInTransaction(()->{Ledger l=Ledger.load(db);for(TransactionEntity t:l.transactions)Ledger.require(!a.accountId.equals(t.accountId)&&!a.accountId.equals(t.destinationId),"Account has history; archive it instead");for(PaymentRouteEntity r:l.routes)if(a.accountId.equals(r.accountId)){r.deleted=true;r.updatedAt=System.currentTimeMillis();db.ledgerDao().putRoute(r);}a.deleted=true;a.updatedAt=System.currentTimeMillis();db.ledgerDao().putAccount(a);});},()->{page="accounts";itemId="";reload();},"Account deleted successfully")));
+        if(!used)action("Delete unused account",()->confirm("Delete unused account?",a.name,()->work(()->LedgerStore.deleteAccount(this,a.accountId),()->{page="accounts";itemId="";reload();},"Account deleted successfully")));
         content=mainContent;content.addView(management);section("Account activity");
         boolean hasHistory=false;
         for(TransactionEntity t:ledger.transactions)if(!t.deleted&&ledger.matches(t,a.accountId)){hasHistory=true;transactionLine(t);}

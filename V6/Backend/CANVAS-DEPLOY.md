@@ -8,7 +8,7 @@ For migration, back up the workbook, save this script, update the existing Web A
 
 The support sheet retains account/person snapshots, deletion IDs and committed snapshot buffers. Do not clear it or rebind Canvas to the clean report. Canvas's View data command opens its raw source and can unhide support; hide that tab again afterward if desired.
 
-Live deployment: **Version 13, 19 October 2026 at 19:53 IST**, same endpoint/access settings. All 76 committed records were unchanged by migration. Run `node V6/tests/clean-sheet-layout.test.cjs` to verify repeated sync, updates, cleared history, balances and stable sheet identity. See `../docs/CLEAN_SHEET_LAYOUT_2026-10-19.md` for evidence.
+Live deployment: **Version 14, 5 November 2026 at 16:32 IST**, same endpoint/access settings. The sync/privacy safety fixes and Dashboard code were applied with all existing workbook values/formulas preserved. See `../docs/SYNC_PRIVACY_FIXES_2026-11-05.md` for rollout and phone verification. The earlier Version 13 clean-layout migration on 19 October preserved all 76 records present at that time. Run `node V6/tests/clean-sheet-layout.test.cjs` to verify repeated sync, updates, cleared history, balances and stable sheet identity. See `../docs/CLEAN_SHEET_LAYOUT_2026-10-19.md` for evidence.
 
 ## Previous layout instructions (before clean-report migration)
 

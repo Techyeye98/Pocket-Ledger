@@ -106,3 +106,15 @@ const restored=request('LEDGER_FETCH').ledger;
 assert.equal(restored.transactions.length,1);assert.equal(restored.transactions[0].transactionId,'original-id');assert.equal(restored.transactions[0].amountMinor,9900);
 assert.equal(tabs.Transactions.data[1][13],'=2+3');assert.equal(tabs.Transactions.data[1][9],now);assert.equal(tabs.Transactions.data[1][10],now);assert.deepEqual(Object.keys(tabs),['Transactions']);
 console.log('PASS: repeat setup preserves original expenses, IDs, timestamps and custom formulas without creating tabs.');
+
+// Equal revisions with changed content conflict in either direction; status-only retries do not.
+const tie=structuredClone(l);tie.transactions[0].remarks='conflicting version';
+assert.throws(()=>context.ledgerMerge(l,tie),/Sync conflict/);
+assert.throws(()=>context.ledgerMerge(tie,l),/Sync conflict/);
+const transport=structuredClone(l);transport.transactions.forEach(t=>t.syncStatus='SYNCED');
+assert.equal(context.ledgerMerge(l,transport).transactions.length,l.transactions.length);
+const clocked=structuredClone(l);clocked.transactions[0].updatedAt=Date.now()+86400000;clocked.transactions[0].remarks='future version';
+assert.throws(()=>context.ledgerMerge(clocked,l),/Clock conflict/,'A skewed clock must not silently discard a different older version');
+assert.equal(context.parseEpoch('01/10/2026','12:00:00'),context.parseEpoch('01-10-2026','12:00:00'));
+assert.throws(()=>context.parseEpoch('30-02-2026','12:00:00'),/Invalid/);
+console.log('PASS: symmetric conflict detection, status-independent retries, clock-skew warning and strict dates.');

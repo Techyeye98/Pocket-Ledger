@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
+    <exclude domain="sharedpref" path="pocket_ledger_connection.xml" />
     <exclude domain="database" path="pocket_ledger_splits.db" />
     <exclude domain="database" path="pocket_ledger_splits.db-wal" />
     <exclude domain="database" path="pocket_ledger_splits.db-shm" />

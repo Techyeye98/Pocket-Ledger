@@ -1,5 +1,5 @@
 """Beginner handbook content, checked against preview.14 source and real captures."""
-VERSION = '6.1.0-preview.14'
+VERSION = '6.1.0-preview.15'
 PDF_NAME = 'Pocket-Ledger-Guide-2026-10.pdf'
 ANDROID_SHEET = 'https://docs.google.com/spreadsheets/d/1rxBf4afldt5WeRTu_Lxue1OeDSCDepbNpJz45OeTdAA/copy'
 IOS_SHEET = 'https://docs.google.com/spreadsheets/d/16j8RzujL-Z_zTnZ8ST50UopyROpsU-yM21yhWZf2IxY/copy'

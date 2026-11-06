@@ -24,24 +24,49 @@ final class ConfigStore {
     private static final Pattern PREFIX = Pattern.compile("^([^\\p{L}\\p{N}\\s]+)\\s+(.+)$");
     private static final Pattern SUFFIX = Pattern.compile("^(.+?)\\s+([^\\p{L}\\p{N}\\s]+)$");
 
+    private static final String CONNECTION_PREFS = "pocket_ledger_connection";
+    private static final String[] CONNECTION_KEYS = {"url","verifiedUrl","verifiedSpendingTypeSchema","verifiedLedgerSchema","lastSyncAt"};
     private final SharedPreferences prefs;
+    private final SharedPreferences connection;
 
     ConfigStore(Context context) {
         prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+        connection = context.getSharedPreferences(CONNECTION_PREFS, Context.MODE_PRIVATE);
+        synchronized(ConfigStore.class) {
+            if(prefs.contains("url")) {
+                if(!connection.contains("url")&&!connection.edit().putString("url",prefs.getString("url","")).commit())
+                    throw new IllegalStateException("Could not move the Sheets connection to private storage");
+            }
+            boolean legacyConnection=false;for(String key:CONNECTION_KEYS)legacyConnection|=prefs.contains(key);
+            if(legacyConnection){
+                SharedPreferences.Editor legacy=prefs.edit();for(String key:CONNECTION_KEYS)legacy.remove(key);
+                legacy.remove("lastDetail");
+                if(!legacy.commit())throw new IllegalStateException("Could not remove legacy connection settings");
+            }
+        }
     }
 
     // ── Sync / connection ─────────────────────────────────────────────────────
 
-    String url()               { return prefs.getString("url", ""); }
-    void setUrl(String value)  { prefs.edit().putString("url", value.trim()).apply(); }
+    String url()               { return connection.getString("url", ""); }
+    void setUrl(String value)  { connection.edit().putString("url", value.trim()).apply(); }
 
-    String verifiedUrl()               { return prefs.getString("verifiedUrl", ""); }
-    boolean spendingSyncVerified()    { return prefs.getInt("verifiedSpendingTypeSchema", 0) == 1 && prefs.getInt("verifiedLedgerSchema",0)==1; }
-    void setVerifiedUrl(String url)    { prefs.edit().putString("verifiedUrl", url == null ? "" : url.trim()).putInt("verifiedSpendingTypeSchema", 1).putInt("verifiedLedgerSchema",1).apply(); }
-    void clearVerifiedUrl()            { prefs.edit().putString("verifiedUrl", "").remove("verifiedSpendingTypeSchema").remove("verifiedLedgerSchema").apply(); }
+    String verifiedUrl()               { return connection.getString("verifiedUrl", ""); }
+    boolean spendingSyncVerified()    { return connection.getInt("verifiedSpendingTypeSchema", 0) == 1 && connection.getInt("verifiedLedgerSchema",0)==1; }
+    void setVerifiedUrl(String url)    { connection.edit().putString("verifiedUrl", url == null ? "" : url.trim()).putInt("verifiedSpendingTypeSchema", 1).putInt("verifiedLedgerSchema",1).apply(); }
+    void clearVerifiedUrl()            { connection.edit().putString("verifiedUrl", "").remove("verifiedSpendingTypeSchema").remove("verifiedLedgerSchema").apply(); }
 
-    long lastSyncAt()                  { return prefs.getLong("lastSyncAt", 0); }
-    void recordSync(long epochMillis)  { prefs.edit().putLong("lastSyncAt", epochMillis).apply(); }
+    long lastSyncAt()                  { return connection.getLong("lastSyncAt", 0); }
+    void recordSync(long epochMillis)  { connection.edit().putLong("lastSyncAt", epochMillis).apply(); }
+
+    // Also clears connection keys from backups made before private storage was introduced.
+    static void clearRestoredConnection(Context context) {
+        if(!context.getSharedPreferences(CONNECTION_PREFS,Context.MODE_PRIVATE).edit().clear().commit())
+            throw new IllegalStateException("Could not clear restored connection settings");
+        SharedPreferences.Editor legacy=context.getSharedPreferences(PREFS,Context.MODE_PRIVATE).edit();
+        for(String key:CONNECTION_KEYS)legacy.remove(key);legacy.remove("lastDetail");
+        if(!legacy.commit())throw new IllegalStateException("Could not clear legacy connection settings");
+    }
 
     // ── Device ────────────────────────────────────────────────────────────────
 
@@ -150,11 +175,15 @@ final class ConfigStore {
 
     // ── Diagnostics ───────────────────────────────────────────────────────────
 
+    private String redactConnection(String detail) {
+        if(detail==null)return "";String address=url();
+        return address.isEmpty()?detail:detail.replace(address,"[private Sheets connection]");
+    }
     void recordOperation(String operation, boolean success, String detail) {
         prefs.edit()
                 .putString("lastOperation", operation)
                 .putBoolean("lastSuccess", success)
-                .putString("lastDetail", detail)
+                .putString("lastDetail", redactConnection(detail))
                 .putLong("lastAt", System.currentTimeMillis())
                 .apply();
     }

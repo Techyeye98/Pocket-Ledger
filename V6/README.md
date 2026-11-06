@@ -1,6 +1,6 @@
 # Pocket Ledger Android source
 
-Current source/build: **6.1.0-preview.14** (versionCode 23), Android 8.0+, package `com.pocketledger.v6.preview`, Room schema 3. The visible app name is Pocket Ledger.
+Current source/build: **6.1.0-preview.15** (versionCode 24), Android 8.0+, package `com.pocketledger.v6.preview`, Room schema 3. The visible app name is Pocket Ledger.
 
 The up-to-date [main README](../README.md) covers all current features, installation/migration, Android/iOS differences, setup, financial examples, backups and developer checks. It supersedes the earlier expense-only overview.
 

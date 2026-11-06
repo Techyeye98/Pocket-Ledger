@@ -1,0 +1,11 @@
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../NativeExpenseEntry/app/src/main');
+const read=p=>fs.readFileSync(path.join(root,p),'utf8');
+const exclusion='<exclude domain="sharedpref" path="pocket_ledger_connection.xml" />';
+assert.ok(read('res/xml/backup_rules.xml').includes(exclusion));
+const rules=read('res/xml/data_extraction_rules.xml');
+for(const group of ['cloud-backup','device-transfer'])assert.ok(rules.split('<'+group+'>')[1].split('</'+group+'>')[0].includes(exclusion));
+const manifest=read('AndroidManifest.xml');assert.match(manifest,/backupAgent=".LedgerBackupAgent"/);assert.match(manifest,/fullBackupOnly="true"/);
+const agent=read('java/com/pocketledger/v2/LedgerBackupAgent.java');assert.match(agent,/onFullBackup/);assert.match(agent,/new ConfigStore\(this\)/);assert.match(agent,/onRestoreFinished/);assert.match(agent,/clearRestoredConnection/);
+const backup=read('java/com/pocketledger/v2/BackupManager.java');assert.doesNotMatch(backup,/\.put\("(?:url|verifiedUrl)"/);
+console.log('PASS: connection exclusions for Android cloud/transfer backups, legacy migration hooks and financial JSON URL exclusion.');

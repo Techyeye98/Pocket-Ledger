@@ -53,7 +53,7 @@ public interface TransactionDao {
      * Tombstone a transaction. Row is kept so deletion can sync safely.
      * updatedAt and syncStatus are updated to allow the sync layer to push deletion.
      */
-    @Query("UPDATE transactions SET deleted = 1, syncStatus = 'SYNC_PENDING', updatedAt = :now WHERE transactionId = :id")
+    @Query("UPDATE transactions SET deleted = 1, syncStatus = 'SYNC_PENDING', updatedAt = MAX(updatedAt + 1, :now) WHERE transactionId = :id")
     void softDelete(String id, long now);
 
     // ── SYNC HELPERS ─────────────────────────────────────────────────────────

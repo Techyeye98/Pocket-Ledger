@@ -50,11 +50,37 @@ final class LedgerJson {
         arr=root.getJSONArray("transactions");for(int i=0;i<arr.length();i++)t.add(transaction(arr.getJSONObject(i),true));
         Ledger l=new Ledger(a,r,p,t);l.validate();return l;
     }
+    // Equal revisions with different content are conflicts, never silent overwrites.
+    private static JSONObject record(Object value) throws JSONException {
+        Ledger l=new Ledger(new ArrayList<>(),new ArrayList<>(),new ArrayList<>(),new ArrayList<>());String group;
+        if(value instanceof AccountEntity){l.accounts.add((AccountEntity)value);group="accounts";}
+        else if(value instanceof PersonEntity){l.people.add((PersonEntity)value);group="people";}
+        else if(value instanceof PaymentRouteEntity){l.routes.add((PaymentRouteEntity)value);group="paymentRoutes";}
+        else {l.transactions.add((TransactionEntity)value);group="transactions";}
+        JSONObject o=write(l).getJSONArray(group).getJSONObject(0);o.remove("syncStatus");o.remove("amount");return o;
+    }
+    static boolean sameContent(Object first,Object second) {
+        try{return sameJson(record(first),record(second));}catch(JSONException e){throw new IllegalArgumentException("Invalid sync record",e);}
+    }
+    private static boolean sameJson(Object a,Object b) throws JSONException {
+        if(a instanceof JSONObject&&b instanceof JSONObject){
+            JSONObject x=(JSONObject)a,y=(JSONObject)b;if(x.length()!=y.length())return false;
+            Iterator<String> keys=x.keys();while(keys.hasNext()){String k=keys.next();if(!y.has(k)||!sameJson(x.get(k),y.get(k)))return false;}return true;
+        }
+        if(a instanceof Number&&b instanceof Number)return Double.compare(((Number)a).doubleValue(),((Number)b).doubleValue())==0;
+        return Objects.equals(a,b);
+    }
+    private static void checkTie(Object first,Object second) {
+        try {JSONObject a=record(first),b=record(second);
+            Ledger.require(a.getLong("updatedAt")!=b.getLong("updatedAt")||sameJson(a,b),
+                    "Sync conflict for "+a.optString(first instanceof AccountEntity?"accountId":first instanceof PersonEntity?"personId":first instanceof PaymentRouteEntity?"routeId":"transactionId")+": different versions have the same timestamp. Edit and save this record in the app, then sync again.");
+        }catch(JSONException e){throw new IllegalArgumentException("Invalid sync record",e);}
+    }
     static Ledger merge(Ledger local,Ledger remote) {
-        List<AccountEntity>a=new ArrayList<>(local.accounts);for(AccountEntity x:remote.accounts){AccountEntity old=local.account(x.accountId);if(old==null||old.updatedAt<x.updatedAt){a.removeIf(y->y.accountId.equals(x.accountId));a.add(x);}}
-        List<PersonEntity>p=new ArrayList<>(local.people);for(PersonEntity x:remote.people){PersonEntity old=local.person(x.personId);if(old==null||old.updatedAt<x.updatedAt){p.removeIf(y->y.personId.equals(x.personId));p.add(x);}}
-        List<PaymentRouteEntity>r=new ArrayList<>(local.routes);for(PaymentRouteEntity x:remote.routes){PaymentRouteEntity old=null;for(PaymentRouteEntity y:r)if(y.routeId.equals(x.routeId))old=y;if(old==null||old.updatedAt<x.updatedAt){r.removeIf(y->y.routeId.equals(x.routeId));r.add(x);}}
-        List<TransactionEntity>t=new ArrayList<>(local.transactions);for(TransactionEntity x:remote.transactions){TransactionEntity old=local.transaction(x.transactionId);if(old==null||old.updatedAt<x.updatedAt){t.removeIf(y->y.transactionId.equals(x.transactionId));t.add(x);}}
+        List<AccountEntity>a=new ArrayList<>(local.accounts);for(AccountEntity x:remote.accounts){AccountEntity old=local.account(x.accountId);if(old!=null&&old.updatedAt==x.updatedAt)checkTie(old,x);if(old==null||old.updatedAt<x.updatedAt){a.removeIf(y->y.accountId.equals(x.accountId));a.add(x);}}
+        List<PersonEntity>p=new ArrayList<>(local.people);for(PersonEntity x:remote.people){PersonEntity old=local.person(x.personId);if(old!=null&&old.updatedAt==x.updatedAt)checkTie(old,x);if(old==null||old.updatedAt<x.updatedAt){p.removeIf(y->y.personId.equals(x.personId));p.add(x);}}
+        List<PaymentRouteEntity>r=new ArrayList<>(local.routes);for(PaymentRouteEntity x:remote.routes){PaymentRouteEntity old=null;for(PaymentRouteEntity y:r)if(y.routeId.equals(x.routeId))old=y;if(old!=null&&old.updatedAt==x.updatedAt)checkTie(old,x);if(old==null||old.updatedAt<x.updatedAt){r.removeIf(y->y.routeId.equals(x.routeId));r.add(x);}}
+        List<TransactionEntity>t=new ArrayList<>(local.transactions);for(TransactionEntity x:remote.transactions){TransactionEntity old=local.transaction(x.transactionId);if(old!=null&&old.updatedAt==x.updatedAt)checkTie(old,x);if(old==null||old.updatedAt<x.updatedAt){t.removeIf(y->y.transactionId.equals(x.transactionId));t.add(x);}}
         Ledger result=new Ledger(a,r,p,t);result.validate();return result;
     }
     static void persist(AppDatabase db,Ledger l) {

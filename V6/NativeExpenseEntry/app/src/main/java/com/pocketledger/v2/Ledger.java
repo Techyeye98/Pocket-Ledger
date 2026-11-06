@@ -54,6 +54,10 @@ final class Ledger {
         } catch (Exception ignored) { return fallback; }
     }
     static long amount(TransactionEntity t) { return t.amountMinor < 0 && !"ADJUSTMENT".equals(t.kind) ? Money.legacy(t.amount) : t.amountMinor; }
+    static long nextUpdate(long previous) {
+        long next=Math.max(System.currentTimeMillis(),Math.addExact(previous,1));
+        require(next<=Money.MAX,"Update timestamp is out of range");return next;
+    }
     static long personal(TransactionEntity t) { return t.personalMinor < 0 ? amount(t) : t.personalMinor; }
     static long at(TransactionEntity t) { return t.effectiveAt > 0 ? t.effectiveAt : effectiveDate(t.date, t.time, t.createdAt); }
     AccountEntity account(String id) { for (AccountEntity a : accounts) if (a.accountId.equals(id)) return a; return null; }

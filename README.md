@@ -26,7 +26,7 @@ This is the [Techyeye98/Pocket-Ledger](https://github.com/Techyeye98/Pocket-Ledg
 
 ## Current version
 
-**Android 6.1.0-preview.14** · version code **23** · Android **8.0+** · app name **Pocket Ledger**.
+**Android 6.1.0-preview.15** · version code **24** · Android **8.0+** · app name **Pocket Ledger**.
 
 This README describes the current source and website downloads. The illustrated Android handbook is available as short web chapters and a linked 14-page PDF; the earlier expense-only PDF is retained as an archive. The Android app remains a debug-signed preview.
 
@@ -110,7 +110,7 @@ Skip this if you only want offline use.
 4. Run **setupPocketLedger**. For the clean layout, also run **setupCleanTransactions** after updating the deployment. Back up an existing workbook before migrating it.
 5. App → **Settings → Sync & Sheets → Web App URL**: paste the deployment URL ending in `/exec`, then **Test Connection → Sync Now → Refresh Sheet dashboard**.
 
-**Keep the deployment URL private:** anyone with it can call the Web app to access the synced ledger. This access model is different from sharing the Sheet template. The URL is deliberately excluded from JSON backups.
+**Keep the deployment URL private:** anyone with it can call the Web app to access the synced ledger. This access model is different from sharing the Sheet template. The URL is deliberately excluded from JSON backups. Android cloud backups and device transfers also exclude the connection. Upgrading preserves the existing URL privately; restoring a phone requires reconnecting it.
 
 ### What sync actually does
 

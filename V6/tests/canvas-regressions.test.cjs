@@ -6,10 +6,10 @@ vm.createContext(server);
 vm.runInContext(source.slice(0,source.indexOf("assert.equal(request('LEDGER_FETCH')"))+'\nthis.tabs=tabs;this.call=request;',server);
 const src=fs.readFileSync(path.join(root,'Backend/Canvas.jsx'),'utf8');
 const start=src.indexOf('// Helper'),app=src.indexOf('function App('),end=src.indexOf('\n  return (',app);
-let stateIndex=0,editing=null,updatedRow=null,updatedIndex=null,error='';
-const ctx={console,useMemo:f=>f(),useState:v=>{const i=++stateIndex;return [i===14?editing:(typeof v==='function'?v():v),v=>{if(i===18)error=v;}];},useRef:v=>({current:v}),useEffect:()=>{}};
+let stateIndex=0,editing=null,deleting=null,updatedRow=null,updatedIndex=null,error='';
+const ctx={console,useMemo:f=>f(),useState:v=>{const i=++stateIndex;return [i===15?deleting:i===14?editing:(typeof v==='function'?v():v),v=>{if(i===18)error=v;}];},useRef:v=>({current:v}),useEffect:()=>{}};
 for(const line of src.slice(0,start).split('\n')){const name=line.trim().replace(/,$/,'').split(' as ').pop();if(/^[A-Z]\w*$/.test(name))ctx[name]=()=>null;}
-vm.createContext(ctx);vm.runInContext(src.slice(start,end)+'\nreturn {transactions,stats,overallBalances,accountsList,peopleList,categoryChartData,paymentChartData,dailyTimelineData,handleSaveEdit,handleSaveAdd};}\nthis.compute=App;',ctx);
+vm.createContext(ctx);vm.runInContext(src.slice(start,end)+'\nreturn {transactions,stats,overallBalances,accountsList,peopleList,categoryChartData,paymentChartData,dailyTimelineData,handleSaveEdit,handleSaveAdd,handleConfirmDelete};}\nthis.compute=App;',ctx);
 function compute(rows,edit=null){editing=edit;stateIndex=0;updatedRow=null;error='';return ctx.compute({data:[{index_:0,data:rows.map((row,index_)=>({row,index_}))}],updateItem:(range,index,row)=>{updatedIndex=index;updatedRow=row;},insertItem:(range,index,row)=>{updatedRow=row;},deleteItem(){}});}
 const headers=server.tabs.Transactions.data[0];
 function row(kind,amount,extra={}){const values=Array(headers.length).fill('');for(const [name,value] of Object.entries({Date:'15-10-2026',Time:'12:00:00',Category:'Food',Amount:amount,'Transaction Id':kind+amount,'Updated At':1,Deleted:false,Type:kind,...extra}))values[headers.indexOf(name)]=value;return values;}
@@ -35,3 +35,29 @@ const linkedRows=[headers,row('EXPENSE',100),row('REFUND',10,{'Original entry ID
 const linked=compute(linkedRows).transactions[0];compute(linkedRows,linked).handleSaveEdit(form);assert.equal(updatedRow,null);assert.match(error,/app/);
 compute([headers]).handleSaveAdd(form);assert.equal(updatedRow[4],600);assert.equal(updatedRow[headers.indexOf('Personal amount')],600);assert.equal(updatedRow[headers.indexOf('Type')],'EXPENSE');
 console.log('PASS: Canvas edit/backend fetch+push round trip, unsafe/invalid edit guards, personal spending/refunds, stable snapshot IDs and legacy fallback.');
+
+// Linked origins cannot be deleted, and a rejected legacy Dashboard edit cannot poison sync.
+deleting=entry;compute(data).handleConfirmDelete();assert.ok(updatedRow,'Ordinary expense may be deleted');
+const origin=compute(data).transactions.find(t=>t.rawRow[8]==='dinner');
+deleting=origin;compute(data).handleConfirmDelete();assert.equal(updatedRow,null);assert.match(error,/linked/);
+const originRow=server.tabs.Transactions.data.find(r=>r[8]==='dinner');originRow[11]=true;originRow[10]=Date.now()+1;
+const safe=server.call('LEDGER_FETCH');assert.equal(safe.status,'success');assert.match(safe.dashboardWarning,/not applied/);
+assert.equal(safe.ledger.transactions.find(t=>t.transactionId==='dinner').deleted,false);
+assert.equal(server.call('LEDGER_PUSH').status,'success','A bad Dashboard deletion must not block phone sync');
+deleting=null;
+const current=compute(data).transactions.find(t=>t.rawRow[8]==='purchase');
+compute(data,current).handleSaveEdit({...form,paymentMode:'cash'});assert.equal(updatedRow,null);assert.match(error,/payment account/);
+const paymentRow=server.tabs.Transactions.data.find(r=>r[8]==='purchase');
+paymentRow[5]='cash';paymentRow[10]=Date.now()+1000;
+const badPayment=server.call('LEDGER_FETCH');assert.equal(badPayment.status,'success');assert.match(badPayment.dashboardWarning,/payment account/);
+assert.equal(badPayment.ledger.transactions.find(t=>t.transactionId==='purchase').accountId,'card');
+assert.equal(badPayment.ledger.transactions.find(t=>t.transactionId==='purchase').paymentMode,'card');
+assert.equal(server.call('LEDGER_PUSH').status,'success');
+for(const date of ['2099-01-01','2026-02-30','not-a-date']){
+ compute(data,current).handleSaveEdit({...form,date});assert.equal(updatedRow,null);assert.match(error,/valid date/);
+}
+compute(data,current).handleSaveEdit({...form,date:'2026-10-01'});assert.ok(updatedRow);assert.equal(updatedRow[0],'01-10-2026');
+server.tabs.Transactions.data[updatedIndex]=updatedRow;
+const historical=server.call('LEDGER_FETCH').ledger.transactions.find(t=>t.transactionId==='purchase');
+assert.equal(new Date(historical.effectiveAt).getDate(),1);assert.equal(new Date(historical.effectiveAt).getMonth(),9);
+console.log('PASS: linked deletion guard, invalid-edit recovery, payment identity and historical dates.');

@@ -177,32 +177,21 @@ function normalizeDate(raw, monthHint = '') {
   return rawStr;
 }
 
-// Helper to format date strictly into DD/MM/YYYY for spreadsheet storage (e.g. 30/08/2026)
-function formatDateForSheet(dateStr, monthHint = '') {
-  if (!dateStr) return '';
-  const s = String(dateStr).trim();
-  // If already in DD/MM/YYYY format
-  const dmyMatch = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/);
-  if (dmyMatch) {
-    const day = dmyMatch[1].padStart(2, '0');
-    const month = dmyMatch[2].padStart(2, '0');
-    const year = dmyMatch[3];
-    return `${day}/${month}/${year}`;
-  }
-  // If in YYYY-MM-DD format
-  const ymdMatch = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
-  if (ymdMatch) {
-    const year = ymdMatch[1];
-    const month = ymdMatch[2].padStart(2, '0');
-    const day = ymdMatch[3].padStart(2, '0');
-    return `${day}/${month}/${year}`;
-  }
-  const iso = normalizeDate(dateStr, monthHint);
-  if (iso && /^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-    const [y, m, d] = iso.split('-');
-    return `${d}/${m}/${y}`;
-  }
-  return s;
+// The backend and Android wire format use DD-MM-YYYY.
+function formatDateForSheet(dateStr) {
+  const iso=normalizeDate(dateStr);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(iso))return '';
+  const [y,m,d]=iso.split('-');return `${d}-${m}-${y}`;
+}
+
+function validEntry(form) {
+  const iso=normalizeDate(form.date),time=String(form.time||'12:00:00');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)||!/^\d{2}:\d{2}(?::\d{2})?$/.test(time))return false;
+  const [y,m,d]=iso.split('-').map(Number),[h,min,sec=0]=time.split(':').map(Number);
+  const date=new Date(y,m-1,d,h,min,sec),amount=Number(form.amount);
+  return date.getFullYear()===y&&date.getMonth()===m-1&&date.getDate()===d&&date.getHours()===h&&date.getMinutes()===min&&date.getSeconds()===sec
+    &&date.getTime()<=Date.now()&&Number.isFinite(amount)&&amount>0&&Number.isSafeInteger(Math.round(amount*100))&&Math.round(amount*100)<=9000000000000000
+    &&Math.abs(amount*100-Math.round(amount*100))<0.000001;
 }
 
 // Formats YYYY-MM-DD or numeric serial dates strictly to DD/MM/YYYY for display in UI
@@ -1033,8 +1022,8 @@ function App({ data, updateItem, deleteItem, insertItem, moveItem, followLink })
   // Delete must set Deleted=true rather than physically remove rows
   const handleSaveAdd = (formData) => {
     setEditError('');
-    if (!Number.isFinite(Number(formData.amount)) || Number(formData.amount) <= 0 || !normalizeDate(formData.date)) {
-      setEditError('Enter a positive amount and a valid date.'); return;
+    if (!validEntry(formData)) {
+      setEditError('Enter a positive amount with at most two decimals and a valid date, not in the future.'); return;
     }
 
     let m = formData.month;
@@ -1104,8 +1093,8 @@ function App({ data, updateItem, deleteItem, insertItem, moveItem, followLink })
     if (!['EXPENSE', 'INCOME'].includes(editingItem.type) || linked || (editingItem.type === 'EXPENSE' && editingItem.personalShare !== editingItem.amount)) {
       setEditError('Edit shared, linked and advanced entries in the Pocket Ledger app.'); return;
     }
-    if (!Number.isFinite(Number(formData.amount)) || Number(formData.amount) <= 0 || !normalizeDate(formData.date)) {
-      setEditError('Enter a positive amount and a valid date.'); return;
+    if (!validEntry(formData)) {
+      setEditError('Enter a positive amount with at most two decimals and a valid date, not in the future.'); return;
     }
 
     let m = formData.month;
@@ -1121,6 +1110,9 @@ function App({ data, updateItem, deleteItem, insertItem, moveItem, followLink })
       }
     }
 
+    if(colMap.accountId!==-1&&normalizePayment(formData.paymentMode)!==editingItem.paymentMode){
+      setEditError('Change the payment account in the Pocket Ledger app.');return;
+    }
     const formattedDate = formatDateForSheet(formData.date, m);
 
     // Preserve original row to maintain stable Transaction Id, Created At, and unknown custom fields
@@ -1136,13 +1128,13 @@ function App({ data, updateItem, deleteItem, insertItem, moveItem, followLink })
     rowArray[colMap.category] = formData.category;
     rowArray[colMap.amount] = Number(formData.amount);
     if (colMap.personalAmount !== -1 && editingItem.type === 'EXPENSE') rowArray[colMap.personalAmount] = Number(formData.amount);
-    rowArray[colMap.paymentMode] = formData.paymentMode;
+    rowArray[colMap.paymentMode] = colMap.accountId!==-1 ? (editingItem.rawRow?.[colMap.paymentMode] ?? formData.paymentMode) : formData.paymentMode;
     rowArray[colMap.remarks] = formData.remarks;
     rowArray[colMap.deviceName] = formData.deviceName;
     if (colMap.spendingType !== -1) rowArray[colMap.spendingType] = formData.spendingType || '';
 
     // Always update Updated At timestamp on edit
-    if (colMap.updatedAt !== -1) rowArray[colMap.updatedAt] = Date.now();
+    if (colMap.updatedAt !== -1) rowArray[colMap.updatedAt] = Math.max(Date.now(), Number(editingItem.rawRow?.[colMap.updatedAt] || 0) + 1);
 
     updateItem(editingItem.rangeIndex_ ?? 0, editingItem.index_, rowArray);
     setEditingItem(null);
@@ -1150,12 +1142,17 @@ function App({ data, updateItem, deleteItem, insertItem, moveItem, followLink })
 
   const handleConfirmDelete = () => {
     if (!deletingItem) return;
+    setEditError('');
+    const id=deletingItem.rawRow?.[colMap.transactionId];
+    if(id&&colMap.originalId!==-1&&transactions.some(t=>t.rawRow?.[colMap.originalId]===id)){
+      setEditError('Resolve linked repayments or refunds in the Pocket Ledger app before deleting this entry.');return;
+    }
 
     // Delete must set Deleted=true rather than physically remove rows
     if (colMap.deleted !== -1 && deletingItem.rawRow) {
       const updatedRow = [...deletingItem.rawRow];
       updatedRow[colMap.deleted] = true;
-      if (colMap.updatedAt !== -1) updatedRow[colMap.updatedAt] = Date.now();
+      if (colMap.updatedAt !== -1) updatedRow[colMap.updatedAt] = Math.max(Date.now(), Number(deletingItem.rawRow[colMap.updatedAt] || 0) + 1);
       updateItem(deletingItem.rangeIndex_ ?? 0, deletingItem.index_, updatedRow);
     } else {
       deleteItem(deletingItem.rangeIndex_ ?? 0, deletingItem.index_);
@@ -2079,11 +2076,12 @@ function App({ data, updateItem, deleteItem, insertItem, moveItem, followLink })
               Delete Transaction?
             </h3>
             <p className="text-xs text-slate-500 text-center mb-5 leading-relaxed">
-              Are you sure you want to remove <span className="font-semibold text-slate-800">{deletingItem.category}</span> ({formatCurrency(deletingItem.amount)})? This will permanently remove the record from your spreadsheet.
+              Are you sure you want to remove <span className="font-semibold text-slate-800">{deletingItem.category}</span> ({formatCurrency(deletingItem.amount)})? Its effects will be removed and a deletion marker retained for sync.
             </p>
+            {editError && <p role="alert" className="text-xs text-red-600 mb-4">{editError}</p>}
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setDeletingItem(null)}
+                onClick={() => {setDeletingItem(null);setEditError('');}}
                 className="flex-1 px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
               >
                 Cancel
