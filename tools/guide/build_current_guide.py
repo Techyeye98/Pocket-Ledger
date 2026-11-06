@@ -108,7 +108,7 @@ def chapter_link(key):
 
 index_links = ''.join(f'<a href="{chapter_link(key)}"><span>{esc(title)}</span><small>{esc(desc)}</small></a>' for key,title,desc in CHAPTERS)
 hub = f'''<section class="manual-title" id="top"><a class="text-link" href="index.html">← Back to Pocket Ledger</a><p class="manual-edition">Android {VERSION} · Illustrated handbook</p><h1>Your money,<br>explained.</h1><p>Choose what you want to do. Each chapter takes one part of the app, one step at a time.</p><a class="action action-primary" href="guides/{PDF_NAME}">Download the illustrated PDF <span aria-hidden="true">↓</span></a><small class="manual-edition">14 linked pages · Real screenshots with demo data</small></section>
-<section class="manual-first" id="install"><div><h2>New here? Start with three small steps.</h2><p>You can begin offline, without a Google Sheet or sign-in.</p><p>Not installed yet? <a href="download.html">Get the Android preview</a> (Android 8.0+, debug-signed). For an older app, <a href="guide-backups.html">export JSON before migrating</a> and keep the old app until you verify the import.</p></div><ol><li><a href="guide-accounts.html">Add the accounts you already use.</a></li><li><a href="guide-entries.html">Record your first expense.</a></li><li><a href="guide-backups.html">Keep a financial JSON backup.</a></li></ol></section>
+<section class="manual-first" id="install"><div><h2>New here? Start with three small steps.</h2><p>You can begin offline, without a Google Sheet or sign-in.</p><p>Not installed yet? <a href="download.html">Get the Android app</a> (Android 8.0+). For an older app, <a href="guide-backups.html">export JSON before migrating</a> and keep the old app until you verify the import.</p></div><ol><li><a href="guide-accounts.html">Add the accounts you already use.</a></li><li><a href="guide-entries.html">Record your first expense.</a></li><li><a href="guide-backups.html">Keep a financial JSON backup.</a></li></ol></section>
 <section class="manual-topics" aria-labelledby="topics-title"><h2 id="topics-title">What would you like to understand?</h2><div class="manual-topic-grid">{index_links}</div></section>
 <section class="manual-shortcuts"><div id="everyday"><h2>Find a specific answer.</h2><p><a href="guide-entries.html#money-moves">Transfer money or record a refund</a><br><a href="guide-people.html#repayments">Receive a partial loan repayment</a><br><a href="guide-split-payments.html#split-tax">Enter the whole bill’s final amount</a><br><a href="guide-backups.html#backups">Move to a new phone safely</a></p></div><div id="sheets"><h2>Connecting a Sheet?</h2><p>Use the Android template with the Android script. Keep the iOS Shortcut workflow separate.</p><a class="text-link" href="guide-sheets.html">Open the Sheets chapter ↗</a></div></section>
 <section class="manual-resources" id="resources"><h2>Downloads &amp; earlier editions</h2><div class="resource-links"><a href="apps-script/Pocket-Ledger-Apps-Script.gs.txt">Android script <span aria-hidden="true">↓</span></a><a href="apps-script/Pocket-Ledger-iOS.gs.txt">iOS script <span aria-hidden="true">↓</span></a><a href="guides/iPhone/iPhone-Shortcut-Setup-Guide.pdf">iOS setup PDF <span aria-hidden="true">↗</span></a><a href="guides/Pocket-Ledger-Quick-Guide-2026-10.pdf">Open earlier Android PDF (expenses &amp; widgets) <span aria-hidden="true">↗</span></a></div><p>The screenshots use clearly marked examples. Your own accounts and balances will differ. The iOS Shortcut does not include Android’s accounts or standalone bill splitter.</p></section>'''
@@ -204,7 +204,7 @@ base('Illustrated handbook',1);c.bookmarkPage('contents');c.addOutlineEntry('Sta
 display('Your money,\nexplained.'.replace('\n',' '),42,88,480,46)
 para('A practical guide to Pocket Ledger.',44,199,470,16,color=MUTED)
 para('Choose a task below. Every topic has short steps and real app screenshots. Example amounts are for learning; your own ledger will differ.',44,238,480,12)
-para('Install the Android preview from the website. Moving from an older app? Export JSON first and keep the old app until you verify the import (page 14).',44,287,485,9,color=MUTED)
+para('Install the Android app from the website. Moving from an older app? Export JSON first and keep the old app until you verify the import (page 14).',44,287,485,9,color=MUTED)
 c.linkURL('https://Techyeye98.github.io/Pocket-Ledger/download.html',(44,H-319,530,H-285),relative=0,thickness=0)
 rect(42,322,511,100,'#dcece2',12)
 para('Your first three steps',58,339,460,13,bold=True)
@@ -215,7 +215,7 @@ for key,title,desc in CHAPTERS:
     para(esc(title),44,yy,438,11,bold=True);para(str(chapter_pages[key]).zfill(2),510,yy,40,11,color=GREEN,bold=True)
     c.linkRect(title,key,(42,H-yy-22,553,H-yy+2),relative=0,thickness=0)
     c.setStrokeColor(HexColor(LINE));c.line(44,H-yy-24,551,H-yy-24);yy+=32
-para('Android 8.0+ · Current preview · Offline first · Optional Google Sheets',44,768,500,8.4,color=MUTED)
+para('Android 8.0+ · Offline first · Optional Google Sheets',44,768,500,8.4,color=MUTED)
 c.showPage()
 
 seen_chapters=set()

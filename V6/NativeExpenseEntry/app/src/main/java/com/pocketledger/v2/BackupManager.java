@@ -53,7 +53,7 @@ final class BackupManager {
         root.put("exportedAt", isoFormat.format(new Date()));
         root.put("appName", "Pocket Ledger");
 
-        String versionName = "2.0.0";
+        String versionName = "Unknown";
         try {
             versionName = context.getPackageManager().getPackageInfo(context.getPackageName(), 0).versionName;
         } catch (Exception ignored) {}

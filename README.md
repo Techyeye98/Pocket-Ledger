@@ -12,7 +12,7 @@
   <a href="https://techyeye98.github.io/Pocket-Ledger/guides/Pocket-Ledger-Guide-2026-10.pdf"><img src="https://img.shields.io/badge/Android_Guide-PDF-0B5744?style=for-the-badge" alt="Open the illustrated Android PDF guide"></a>
   <a href="https://techyeye98.github.io/Pocket-Ledger/your-data.html"><img src="https://img.shields.io/badge/Your_Data-Backups-0B5744?style=for-the-badge" alt="Understand Pocket Ledger data and backups"></a>
 </p>
-<p align="center"><strong><a href="https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger.apk">Download Android APK directly</a></strong> · <a href="https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger-iPhone.shortcut">Get iPhone Shortcut directly</a><br>Android 8.0+ · Debug-signed preview · iPhone uses a separate, simpler Shortcut</p>
+<p align="center"><strong><a href="https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger.apk">Download Android APK directly</a></strong> · <a href="https://techyeye98.github.io/Pocket-Ledger/downloads/Pocket-Ledger-iPhone.shortcut">Get iPhone Shortcut directly</a><br>Android 8.0+ · Signed Android APK · iPhone uses a separate, simpler Shortcut</p>
 
 ## Why use this Pocket Ledger?
 
@@ -22,13 +22,13 @@
 - **Itemized bill splitting:** divide items, tax, discounts and payments; import a receipt image or scanned PDF for on-device English text recognition and review.
 - **Quick Android entry:** use the home-screen widget or Quick Settings tile, then find transactions in Activity.
 
-This is the [Techyeye98/Pocket-Ledger](https://github.com/Techyeye98/Pocket-Ledger) project. Use the links above to identify this app among other products with the same name. The Android download is a **debug-signed preview**, not a Play Store release. Standalone split bills stay on the current phone and are excluded from ledger backups and Sheets sync.
+This is the [Techyeye98/Pocket-Ledger](https://github.com/Techyeye98/Pocket-Ledger) project. Use the links above to identify this app among other products with the same name. The Android download is a **signed APK** distributed through this website. Standalone split bills stay on the current phone and are excluded from ledger backups and Sheets sync.
 
 ## Current version
 
-**Android 6.1.0-preview.15** · version code **24** · Android **8.0+** · app name **Pocket Ledger**.
+**Android 1.0.0** · version code **25** · Android **8.0+** · app name **Pocket Ledger**. [Latest stable release](https://github.com/Techyeye98/Pocket-Ledger/releases/latest).
 
-This README describes the current source and website downloads. The illustrated Android handbook is available as short web chapters and a linked 14-page PDF; the earlier expense-only PDF is retained as an archive. The Android app remains a debug-signed preview.
+This README describes the current source and website downloads. The illustrated Android handbook is available as short web chapters and a linked 14-page PDF; the earlier expense-only PDF is retained as an archive. The Android download is built with the release configuration and preserves the existing signing certificate.
 
 | Platform | What you get | Sheet template |
 | --- | --- | --- |
@@ -73,6 +73,7 @@ Use **Lena / Dena** to see separate receive/pay totals, open items and linked hi
 - Home summaries, category charts and Needs / Wants / Untagged insights with entry drill-down.
 - Searchable Activity with period, category, payment and spending-type filters, sorting, edit/delete, and quick tagging.
 - Light, dark and system themes; currency, category/payment ordering and entry defaults; a Show / Hide control for recent entries.
+- Home checks public GitHub Releases for stable app updates, with a one-hour cooldown. A newer version shows an update card linking to the latest release page; Settings → Check for updates bypasses the cooldown. Offline/API failures do not block the ledger. Settings also includes the repository star link, Made by Namya Mehta and [Telegram @Techyeye](https://t.me/Techyeye).
 
 Need / Want is a choice, not an automatic judgment. Transfers and friends’ shares are not personal shopping. Refunds reduce personal spending, while linked repayments resolve dues.
 
@@ -94,9 +95,9 @@ Import an image or scanned PDF for **on-device English text recognition**, then 
 
 ### Installation and migration
 
-The current package is `com.pocketledger.v6.preview`. The staged APK is **debug-signed**. It updates a preview installed with the same signing certificate, and remains separate from the older release-signed Android app. Do not uninstall your only copy of the ledger to update.
+The current package is `com.pocketledger.v6.preview`. The staged APK uses the **release build configuration with the existing signing certificate**. It updates an existing installation signed with that certificate, and remains separate from the older release-signed Android app. Do not uninstall your only copy of the ledger to update.
 
-For migration from the older app, export a JSON backup, keep that app installed, import into the current preview, and verify balances/history. Device-specific configuration, including the Web App URL, must be reconnected. Separate bill-splitting data is not portable through the financial backup.
+For migration from the older app, export a JSON backup, keep that app installed, import into the current app, and verify balances/history. Device-specific configuration, including the Web App URL, must be reconnected. Separate bill-splitting data is not portable through the financial backup.
 
 ## Optional Android Google Sheets setup
 
@@ -179,7 +180,7 @@ cd V6/NativeExpenseEntry
 .\gradlew.bat :app:assembleDebug :app:lintDebug --offline
 ```
 
-APK output: `V6/NativeExpenseEntry/app/build/outputs/apk/debug/app-debug.apk`. Release signing needs the original local credentials. Never store signing keys/passwords, personal deployment URLs or private captures in the website package.
+APK output: `V6/NativeExpenseEntry/app/build/outputs/apk/debug/app-debug.apk`. For the protected signing backup, local release build, password-copy option and recovery steps, see [release signing](V6/docs/RELEASE_SIGNING.md). Never store signing keys/passwords, personal deployment URLs or private captures in the website package.
 
 From the repository root:
 

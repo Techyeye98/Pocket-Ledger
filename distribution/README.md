@@ -1,9 +1,9 @@
 # Pocket Ledger local website package
 
-This folder contains the website and locally staged downloads. **Nothing has been pushed or published by this update.** The current source is Android 6.1.0-preview.15 (code 24), Android 8.0+, package `com.pocketledger.v6.preview`.
+This folder is the GitHub Pages website package for **Pocket Ledger 1.0.0** (code 25), Android 8.0+, package `com.pocketledger.v6.preview`. The stable release and signed APK are available from [GitHub Releases](https://github.com/Techyeye98/Pocket-Ledger/releases/latest).
 
 - `index.html`, `style.css`, `main.js`: existing visual design with updated accounts/financial-ledger features, examples, setup, sync/backup limits and Android/iOS naming.
-- `downloads/Pocket-Ledger.apk`: current debug-signed Android build staged locally; updates a compatible preview, separate from the older release-signed app.
+- `downloads/Pocket-Ledger.apk`: current release-build APK staged locally with the preserved signing certificate; updates a compatible existing installation, separate from the older release-signed app.
 - `downloads/Pocket-Ledger-iPhone.shortcut`: existing iOS Shortcut; unchanged bytes/name for link compatibility.
 - `apps-script/Pocket-Ledger-Apps-Script.gs.txt`: canonical current Android backend, including clean Transactions + hidden Sync Support.
 - `apps-script/Pocket-Ledger-iOS.gs.txt`: original iOS expense-to-Sheet script, kept separate from Android’s rich ledger.

@@ -1,6 +1,6 @@
 # Pocket Ledger Android source
 
-Current source/build: **6.1.0-preview.15** (versionCode 24), Android 8.0+, package `com.pocketledger.v6.preview`, Room schema 3. The visible app name is Pocket Ledger.
+Current source/build: **1.0.0** (versionCode 25), Android 8.0+, package `com.pocketledger.v6.preview`, Room schema 3. The visible app name is Pocket Ledger.
 
 The up-to-date [main README](../README.md) covers all current features, installation/migration, Android/iOS differences, setup, financial examples, backups and developer checks. It supersedes the earlier expense-only overview.
 
@@ -19,7 +19,7 @@ The up-to-date [main README](../README.md) covers all current features, installa
 - [Fresh-start sync fix](docs/FRESH_START_SYNC_FIX_2026-10-19.md)
 - [Code-review fixes and validation limits](docs/CODE_REVIEW_FIXES_2026-10-19.md)
 
-Install over a preview signed with the same certificate. Older release-signed installations require a separate migration; keep a verified JSON backup and the old app until records are checked. The build remains debug-signed.
+Install over an existing app signed with the same certificate. Older release-signed installations require a separate migration; keep a verified JSON backup and the old app until records are checked. The release build preserves the existing signing certificate.
 
 The current local website package lives in `../distribution/`. Its earlier Android PDF has not yet been replaced with a new screenshot guide. Historical design/verification documents may describe prior previews; use the main README and the latest change-specific notes for current behavior. No Git push or public deployment is included in the local documentation update.
 

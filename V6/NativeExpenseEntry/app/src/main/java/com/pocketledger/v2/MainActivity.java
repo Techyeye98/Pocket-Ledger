@@ -64,6 +64,11 @@ public final class MainActivity extends Activity {
     public static final String EXTRA_OPEN_SETTINGS = "open_settings";
 
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    // Network checks must never queue ahead of ledger reads, imports or sync work.
+    private final ExecutorService updateExecutor = Executors.newSingleThreadExecutor();
+    private boolean updateCheckRunning, manualUpdateFeedback;
+    private String availableUpdateVersion = "";
+    private static final long UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000L;
     private ConfigStore store;
     private ScreenPresenter screens;
     private Ledger ledgerCache;
@@ -105,6 +110,8 @@ public final class MainActivity extends Activity {
         super.onCreate(state);
         instance = this;
         store = new ConfigStore(this);
+        String cachedUpdate = getSharedPreferences("app_updates", 0).getString("latest_version", "");
+        if (ReleaseChecker.isNewer(cachedUpdate, appVersion())) availableUpdateVersion = cachedUpdate;
         pad   = Design.dp(this, 20);
         setDateRange(selectedRangeLabel);
         NotificationHelper.prepare(this);
@@ -168,6 +175,7 @@ public final class MainActivity extends Activity {
         if (instance == this) instance = null;
         dataLoads.next();if(screens!=null)screens.dispose();
         executor.shutdownNow();
+        updateExecutor.shutdownNow();
         super.onDestroy();
     }
 
@@ -258,6 +266,7 @@ public final class MainActivity extends Activity {
     private void showHome() {
         currentScreen = Screen.HOME;
         applyWindowTheme();
+        checkForUpdates(false);
         if(ledgerCache==null){reloadLedger();return;}
         String key=homeSceneKey();
         if(homeScene!=null&&homeKey.equals(key)){present(homeScene,"HOME");return;}
@@ -298,6 +307,12 @@ public final class MainActivity extends Activity {
         gearTarget.setOnClickListener(v -> showSettings());
         header.addView(gearTarget, new LinearLayout.LayoutParams(dp(48), dp(48)));
         root.addView(header, match());
+
+        LinearLayout updateHost = new LinearLayout(this);
+        updateHost.setOrientation(LinearLayout.VERTICAL);
+        updateHost.setTag("app_update_host");
+        root.addView(updateHost, match());
+        renderUpdateCard(updateHost);
 
         LinearLayout statement = new LinearLayout(this);
         statement.setOrientation(LinearLayout.VERTICAL);
@@ -361,6 +376,89 @@ public final class MainActivity extends Activity {
         homeScene=showScreen(root);homeKey=homeSceneKey();present(homeScene,"HOME");
     }
     
+    private void renderUpdateCard(LinearLayout host) {
+        host.removeAllViews();
+        if (availableUpdateVersion.isEmpty()) return;
+        LinearLayout card = new LinearLayout(this);
+        card.setTag("app_update_card");
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setMinimumHeight(dp(72));
+        card.setPadding(dp(16), dp(16), dp(14), dp(16));
+        card.setBackground(Design.shape(Design.primaryMuted(this), 16, this));
+        LinearLayout labels = new LinearLayout(this);
+        labels.setOrientation(LinearLayout.VERTICAL);
+        String title = "Update available — v" + availableUpdateVersion;
+        labels.addView(Components.text(this, title, 16, Design.text(this), Typeface.BOLD));
+        TextView detail = Components.text(this, "Open GitHub Releases to download the APK.", 13, Design.textSoft(this), Typeface.NORMAL);
+        detail.setPadding(0, dp(4), dp(8), 0);
+        labels.addView(detail);
+        card.addView(labels, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+        card.addView(new NavIcon(this, NavIcon.ICON_CHEVRON, Design.primary(this)), new LinearLayout.LayoutParams(dp(22), dp(22)));
+        card.setFocusable(true);
+        card.setContentDescription(title + ". Open GitHub Releases to download the APK.");
+        Components.addPressAnimation(card);
+        card.setOnClickListener(v -> openWebLink(ReleaseChecker.RELEASES_URL));
+        LinearLayout.LayoutParams params = match();
+        params.setMargins(pad, 0, pad, dp(14));
+        host.addView(card, params);
+    }
+
+    private void checkForUpdates(boolean manual) {
+        if (manual) {
+            manualUpdateFeedback = true;
+            Components.customToast(this, "Checking for updates…", false);
+        }
+        if (updateCheckRunning) return;
+        android.content.SharedPreferences updates = getSharedPreferences("app_updates", 0);
+        long now = System.currentTimeMillis();
+        long lastCheck = updates.getLong("last_check", 0);
+        // Reopening Home uses the last result for one hour; manual checks always bypass this.
+        if (!manual && lastCheck > 0 && now >= lastCheck && now - lastCheck < UPDATE_CHECK_INTERVAL_MS) return;
+        updateCheckRunning = true;
+        updates.edit().putLong("last_check", now).apply();
+        String installedVersion = appVersion();
+        updateExecutor.execute(() -> {
+            ReleaseChecker.Result result = ReleaseChecker.check(installedVersion);
+            runOnUiThread(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                updateCheckRunning = false;
+                boolean showFeedback = manualUpdateFeedback;
+                manualUpdateFeedback = false;
+                if (result.status != ReleaseChecker.Status.FAILED) {
+                    availableUpdateVersion = result.status == ReleaseChecker.Status.UPDATE ? result.version : "";
+                    updates.edit().putString("latest_version", availableUpdateVersion).apply();
+                    if (homeScene != null) {
+                        LinearLayout host = homeScene.findViewWithTag("app_update_host");
+                        if (host != null) renderUpdateCard(host);
+                    }
+                }
+                if (!showFeedback || !foreground) return;
+                if (result.status == ReleaseChecker.Status.UPDATE && currentScreen == Screen.SETTINGS) {
+                    new AlertDialog.Builder(this).setTitle("Update available — v" + result.version)
+                            .setMessage("Download the APK from GitHub Releases and install it over your existing app.")
+                            .setNegativeButton("Later", null)
+                            .setPositiveButton("Open releases", (dialog, which) -> openWebLink(ReleaseChecker.RELEASES_URL)).show();
+                } else {
+                    String message;
+                    switch (result.status) {
+                        case UPDATE: message = "Update available — v" + result.version; break;
+                        case CURRENT: message = "You're up to date · v" + installedVersion; break;
+                        case NO_RELEASE: message = "No stable release has been published yet."; break;
+                        default: message = "Couldn't check for updates. Try again later.";
+                    }
+                    Components.customToast(this, message, result.status == ReleaseChecker.Status.FAILED);
+                }
+            });
+        });
+    }
+
+    private void openWebLink(String url) {
+        try { startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
+        catch (android.content.ActivityNotFoundException ignored) {
+            Components.customToast(this, "No app is available to open this link.", true);
+        }
+    }
+
     private View buildHomeTools() {
         LinearLayout tools=new LinearLayout(this);tools.setOrientation(LinearLayout.VERTICAL);tools.setPadding(pad,dp(6),pad,dp(22));
         TextView heading=Components.text(this,"Tools",16,Design.textSoft(this),Typeface.BOLD);tools.addView(heading);
@@ -1022,6 +1120,12 @@ public final class MainActivity extends Activity {
         group.addView(settingsSectionRow(NavIcon.ICON_ARCHIVE, "Data & support", "Backups, privacy and help", () -> { currentSettingsSection = SettingsSection.DATA_SUPPORT; showSettings(); }));
         page.addView(group, match());
 
+        section(page, "App");
+        settingRow(page, "Check for updates", "Version " + appVersion() + " · GitHub Releases", true, 0, () -> checkForUpdates(true));
+        settingRow(page, "Star the GitHub repository", "Open Pocket Ledger on GitHub", true, 0, () -> openWebLink(ReleaseChecker.REPOSITORY_URL));
+        settingRow(page, "Made by Namya Mehta", null, false, 0, null);
+        settingRow(page, "Contact", "Telegram @Techyeye", true, 0, this::contactSupport);
+
         present(showScreen(page),"SETTINGS:"+currentSettingsSection);
     }
 
@@ -1161,7 +1265,7 @@ public final class MainActivity extends Activity {
         // Support
         section(page, "Support");
         settingRow(page, "Diagnostics", "Copy a safe report", true, 0, this::showDiagnostics);
-        settingRow(page, "Contact Support", "Telegram @TechyBist", true, 0, this::contactSupport);
+        settingRow(page, "Contact", "Telegram @Techyeye", true, 0, this::contactSupport);
 
         // Information
         section(page, "Information");
@@ -1562,7 +1666,7 @@ public final class MainActivity extends Activity {
                 + "\nStatus: " + status
                 + "\nDetail: " + store.lastDetail()
                 + "\nTimestamp: " + ts
-                + "\n\nSupport: Telegram @TechyBist";
+                + "\n\nSupport: Telegram @Techyeye";
 
         new AlertDialog.Builder(this).setTitle("Diagnostics")
                 .setMessage(report)
@@ -1575,9 +1679,7 @@ public final class MainActivity extends Activity {
     }
 
     private void contactSupport() {
-        Intent telegram = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("tg://resolve?domain=TechyBist"));
-        Intent web      = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse("https://t.me/TechyBist"));
-        startActivity(telegram.resolveActivity(getPackageManager()) != null ? telegram : web);
+        openWebLink("https://t.me/Techyeye");
     }
 
     private void showPrivacyPolicy() {
@@ -1596,7 +1698,11 @@ public final class MainActivity extends Activity {
                 + "Pocket Ledger does not run background services, location tracking, "
                 + "sensor monitoring, or scheduled sync. The optional sync attempt after saving "
                 + "runs while the app is active.\n\n"
-                + "Support: Telegram @TechyBist";
+                + "APP UPDATES:\n"
+                + "Opening Home checks public GitHub release metadata, at most once per hour. "
+                + "Check for updates in Settings can check sooner. No ledger data, credentials "
+                + "or installation ID is sent to GitHub. Downloading an update opens your browser.\n\n"
+                + "Support: Telegram @Techyeye";
 
         new AlertDialog.Builder(this).setTitle("Privacy Policy")
                 .setMessage(policy)

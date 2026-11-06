@@ -5,6 +5,14 @@ const pages=['index.html','features.html','your-data.html','download.html','guid
 const allHtml=pages.map(file=>fs.readFileSync(path.join(site,file),'utf8')).join('\n');
 const build=fs.readFileSync(path.join(root,'V6/NativeExpenseEntry/app/build.gradle'),'utf8');
 const version=build.match(/versionName '([^']+)'/)[1];assert.ok(allHtml.includes(version));
+assert.match(version,/^\d+\.\d+\.\d+$/,'Public releases use major.minor.patch');
+for(const page of pages){
+ const text=fs.readFileSync(path.join(site,page),'utf8');
+ assert.doesNotMatch(text,/6\.1\.0-preview\.\d+|(?:Current preview|Preview), debug-signed/,'Old release label in '+page);
+ for(const [,schema] of text.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)){
+  for(const node of JSON.parse(schema)['@graph']||[]) if(node['@type']==='SoftwareApplication') assert.equal(node.softwareVersion,version,page+' app version');
+ }
+}
 const android='https://docs.google.com/spreadsheets/d/1rxBf4afldt5WeRTu_Lxue1OeDSCDepbNpJz45OeTdAA/copy';
 const ios='https://docs.google.com/spreadsheets/d/16j8RzujL-Z_zTnZ8ST50UopyROpsU-yM21yhWZf2IxY/copy';
 for(const url of [android,ios])assert.ok(allHtml.includes(url),'Missing platform template');
@@ -44,7 +52,7 @@ assert.ok(html.includes('<noscript>'),'Static chart fallback available');
 assert.equal(fs.readFileSync(path.join(site,'apps-script/Pocket-Ledger-Apps-Script.gs.txt'),'utf8'),fs.readFileSync(path.join(root,'V6/Backend/AppsScript.gs'),'utf8'));
 const iosScript=fs.readFileSync(path.join(site,'apps-script/Pocket-Ledger-iOS.gs.txt'),'utf8');assert.ok(iosScript.includes('function doPost(e)'));assert.ok(!iosScript.includes('ledgerEndpoint'));
 const hash=p=>crypto.createHash('sha256').update(fs.readFileSync(p)).digest('hex');
-assert.equal(hash(path.join(site,'downloads/Pocket-Ledger.apk')),hash(path.join(root,'V6/NativeExpenseEntry/app/build/outputs/apk/debug/app-debug.apk')));
+assert.equal(hash(path.join(site,'downloads/Pocket-Ledger.apk')),hash(path.join(root,'V6/NativeExpenseEntry/app/build/outputs/apk/release/app-release.apk')));
 for(const file of ['README.md','V6/README.md','distribution/README.md']){
  const text=fs.readFileSync(path.join(root,file),'utf8');assert.ok(text.includes(version),file+' version');assert.ok(text.includes(android),file+' Android URL');
  assert.doesNotMatch(text,/1vu140|version code 9|\*\*6\.0\.8\*\*/);

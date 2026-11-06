@@ -21,6 +21,7 @@ $sources += "$PSScriptRoot/SpendingInsightsTest.java"
 $sources += "$PSScriptRoot/BillSplitTest.java"
 $sources += "$PSScriptRoot/ReceiptParserTest.java"
 $sources += "$PSScriptRoot/BackupCompatibilityTest.java"
+$sources += "$PSScriptRoot/ReleaseCheckerTest.java"
 & "$Jdk/bin/javac.exe" -encoding UTF-8 -cp "$classes;$Sdk/platforms/android-36/android.jar" -d "$out/classes" $sources
 if ($LASTEXITCODE -ne 0) { throw 'Ledger tests failed to compile' }
 & "$Jdk/bin/java.exe" -cp "$out/classes;$classes;$Sdk/platforms/android-36/android.jar" com.pocketledger.v2.LedgerTest
@@ -33,3 +34,5 @@ if ($LASTEXITCODE -ne 0) { throw 'Standalone bill split tests failed' }
 if ($LASTEXITCODE -ne 0) { throw 'Receipt parsing tests failed' }
 & "$Jdk/bin/java.exe" -cp "$out/classes;$classes;$Sdk/platforms/android-36/android.jar" com.pocketledger.v2.BackupCompatibilityTest
 if ($LASTEXITCODE -ne 0) { throw 'Financial backup compatibility tests failed' }
+& "$Jdk/bin/java.exe" -cp "$out/classes;$classes;$Sdk/platforms/android-36/android.jar" com.pocketledger.v2.ReleaseCheckerTest
+if ($LASTEXITCODE -ne 0) { throw 'GitHub release update checks failed' }

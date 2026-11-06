@@ -1,5 +1,5 @@
-"""Beginner handbook content, checked against preview.14 source and real captures."""
-VERSION = '6.1.0-preview.15'
+"""Beginner handbook content, updated for Android 1.0.0, using verified real captures."""
+VERSION = '1.0.0'
 PDF_NAME = 'Pocket-Ledger-Guide-2026-10.pdf'
 ANDROID_SHEET = 'https://docs.google.com/spreadsheets/d/1rxBf4afldt5WeRTu_Lxue1OeDSCDepbNpJz45OeTdAA/copy'
 IOS_SHEET = 'https://docs.google.com/spreadsheets/d/16j8RzujL-Z_zTnZ8ST50UopyROpsU-yM21yhWZf2IxY/copy'
@@ -123,7 +123,7 @@ LESSONS = [
    ('Import and check the result','Import Backup merges by ID and keeps newer local records. Preferences in the backup can replace your current preferences. Check the ledger afterward and reconnect your private Web App URL manually on a new device.'),
    ('Treat a fresh start separately','Clear transaction history removes financial entries but keeps accounts, opening balances, links, preferences and separate split bills. Balances return to opening amounts. Use it deliberately after a backup.')],
   example=('What JSON does not carry','Split bills and saved split friends are excluded from JSON backup, Sheets sync, Android cloud backup and device transfer. Export as Text is a readable copy, not a restorable backup.'),
-  remember='Keep an older app installed until its JSON has been imported and checked in this preview. Import is a merge, not an undo button. Uninstalling or clearing app storage can lose local split bills.',
+  remember='Keep an older app installed until its JSON has been imported and checked in this app. Import is a merge, not an undo button. Uninstalling or clearing app storage can lose local split bills.',
   marks=[(50,345,1110,420)], caption='Backup and data controls. No reset or restore is performed by this guide.'),
 ]
 

@@ -5,30 +5,28 @@ android {
     compileSdk 36
 
     defaultConfig {
-        // Keep the existing preview installation updatable without the V2 release key.
+        // Preserve the published package ID so existing installations can update.
         applicationId 'com.pocketledger.v6.preview'
         minSdk 26
         targetSdk 36
         testInstrumentationRunner 'com.pocketledger.v2.ReviewRegressionInstrumentation'
-        versionCode 24
-        versionName '6.1.0-preview.15'
+        versionCode 25
+        versionName '1.0.0'
     }
 
-    // Release signing credentials are read from gitignored local.properties
-    // (written by create-release-keystore.ps1 — never stored in source control).
-    //   RELEASE_STORE_FILE=C:/Users/<user>/.android/pocket-ledger-release.jks
-    //   RELEASE_STORE_PASSWORD=<random>
-    //   RELEASE_KEY_ALIAS=pocketledger
-    //   RELEASE_KEY_PASSWORD=<random>
+    // CI secrets take precedence over gitignored local.properties.
+    // The published preview must retain its existing certificate; see docs/RELEASE_SIGNING.md.
     signingConfigs {
         release {
             File propsFile = rootProject.file('local.properties')
             Properties props = new Properties()
-            if (propsFile.exists()) props.load(propsFile.newDataInputStream())
-            storeFile file(props.getProperty('RELEASE_STORE_FILE') ?: 'missing-release-keystore')
-            storePassword props.getProperty('RELEASE_STORE_PASSWORD', '')
-            keyAlias props.getProperty('RELEASE_KEY_ALIAS', 'pocketledger')
-            keyPassword props.getProperty('RELEASE_KEY_PASSWORD', '')
+            if (propsFile.exists()) propsFile.withInputStream { props.load(it) }
+            def secret = { name -> System.getenv(name) ?: props.getProperty(name) }
+            storeFile file(secret('RELEASE_STORE_FILE') ?: 'missing-release-keystore')
+            storePassword secret('RELEASE_STORE_PASSWORD') ?: ''
+            keyAlias secret('RELEASE_KEY_ALIAS') ?: ''
+            keyPassword secret('RELEASE_KEY_PASSWORD') ?: ''
+            storeType 'PKCS12'
         }
     }
 

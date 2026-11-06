@@ -17,6 +17,12 @@ Thumbs.db
 # Do not include local credentials or machine-specific settings
 *.keystore
 *.jks
+*.p12
+*.pfx
+*.pkcs12
+*.key
+*.dpapi.xml
+.signing-secrets/
 secrets.properties
 env.properties
 tmp/

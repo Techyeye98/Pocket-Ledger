@@ -8,7 +8,7 @@ BASE = 'https://techyeye98.github.io/Pocket-Ledger/'
 PAGES = {
     'index.html': ('Pocket Ledger — Offline Expense Tracker for Android', 'Track accounts, income, expenses and money owed offline on Android. Split bills separately, connect Google Sheets, or use the simpler iPhone Shortcut.'),
     'features.html': ('Accounts, Expenses & Bill Splitting — Pocket Ledger', 'Explore offline Android accounts, income, transfers, refunds, shared expenses and bill splitting, with optional Google Sheets sync.'),
-    'download.html': ('Download Pocket Ledger for Android & iPhone Shortcut', 'Get the Pocket Ledger Android preview or separate iPhone expense Shortcut. Find Android requirements, matching Google Sheets templates and setup help.'),
+    'download.html': ('Download Pocket Ledger for Android & iPhone Shortcut', 'Get the Pocket Ledger Android app or separate iPhone expense Shortcut. Find Android requirements, matching Google Sheets templates and setup help.'),
     'your-data.html': ('Offline Storage, Sync & Backups — Pocket Ledger', 'Understand Pocket Ledger offline storage, optional Google Sheets sync, financial JSON backups and the split-bill data that stays on your Android phone.'),
     'guide.html': ('Pocket Ledger Guide — Accounts, Expenses, Splits & Sync', 'Learn Pocket Ledger step by step: set up accounts, record expenses, track repayments, split bills, connect Google Sheets and back up your ledger.'),
     'guide-accounts.html': ('Set Up Bank, Cash & Card Accounts — Pocket Ledger', 'Set up bank, cash, wallet and card accounts in Pocket Ledger. Choose starting balances and dates, then link payment names to the right Android account.'),
