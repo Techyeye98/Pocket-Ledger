@@ -199,6 +199,13 @@ The last command previews the actual website package at `http://127.0.0.1:4829/P
 
 Source/local regression results do not establish every real-device interaction, receipt-recognition result or live Canvas rendering. Current backend/layout verification notes are in `V6/docs/`. GitHub Pages configuration points to `distribution/`, but publishing is a separate action.
 
+## Community
+
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Contributing](CONTRIBUTING.md)
+- [Security policy](SECURITY.md)
+- [MIT License](LICENSE)
+
 ## License
 
 Pocket Ledger's original code is licensed under the [MIT License](LICENSE).
