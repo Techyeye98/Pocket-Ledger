@@ -198,3 +198,8 @@ node tools/site-smoke/v6-publication.cjs --serve
 The last command previews the actual website package at `http://127.0.0.1:4829/Pocket-Ledger/`. Browser verification uses the connected in-app browser; the preview server supports opt-in local axe diagnostics. The site has no build step; keyboard navigation, both themes and reduced-motion preferences are supported.
 
 Source/local regression results do not establish every real-device interaction, receipt-recognition result or live Canvas rendering. Current backend/layout verification notes are in `V6/docs/`. GitHub Pages configuration points to `distribution/`, but publishing is a separate action.
+
+## License
+
+Pocket Ledger's original code is licensed under the [MIT License](LICENSE).
+Bundled third-party libraries and assets retain their respective licenses and notices.
