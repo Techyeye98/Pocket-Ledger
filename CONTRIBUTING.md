@@ -39,7 +39,7 @@ run the checks relevant to your change:
 
 ```powershell
 node --test V6/tests/*.test.cjs
-.\V6	estsun-ledger-tests.ps1
+.\V6\tests\run-ledger-tests.ps1
 node tools/site-smoke/content-check.cjs
 python -B tools/site-smoke/seo-check.py
 ```
